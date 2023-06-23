@@ -1,4 +1,4 @@
-package com.example.playleast.data
+package com.example.playleast.data.song
 
 import androidx.room.BuiltInTypeConverters
 import androidx.room.Entity
@@ -13,5 +13,5 @@ data class Song(
     val length: Int,
     val url: String,
 //    @TypeConverters(StringTypeConverters::class)
-    val playlists: String
+    val playlists: List<String>
 )

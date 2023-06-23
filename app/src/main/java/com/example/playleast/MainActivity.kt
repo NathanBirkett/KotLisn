@@ -1,6 +1,8 @@
 package com.example.playleast
 
+import android.app.Activity
 import android.os.Bundle
+import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
@@ -11,7 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.playleast.ui.theme.PlayleastTheme
-import com.example.playleast.ui.PlayleastApp
+import com.example.playleast.ui.home.PlayleastApp
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {

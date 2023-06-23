@@ -1,18 +1,16 @@
 package com.example.playleast.ui.song
 
-import com.example.playleast.data.Song
+import androidx.compose.runtime.mutableStateListOf
+import com.example.playleast.data.song.Song
 
 data class SongUIState(
-    val id: Int = 0,
     val title: String = "",
-    val length: Int = 0,
     val url: String = "",
-    val playlists: String = "",
+    val playlists: MutableList<String> = mutableStateListOf(),
     val actionEnabled: Boolean = false
 )
 
-fun SongUIState.toSong(): Song = Song(
-    id = id,
+fun SongUIState.toSong(length: Int): Song = Song(
     title = title,
     length = length,
     url = url,
@@ -20,14 +18,12 @@ fun SongUIState.toSong(): Song = Song(
 )
 
 fun Song.toSongUIState(actionEnabled: Boolean = false): SongUIState = SongUIState(
-    id = id,
     title = title,
-    length = length,
     url = url,
-    playlists = playlists,
+    playlists = playlists.toMutableList(),
     actionEnabled = false
 )
 
 fun SongUIState.isValid(): Boolean {
-    return title.isNotBlank() && length != 0 && url.isNotBlank()
+    return title.isNotBlank() && url.isNotBlank()
 }

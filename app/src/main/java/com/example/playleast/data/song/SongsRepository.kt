@@ -1,4 +1,4 @@
-package com.example.playleast.data
+package com.example.playleast.data.song
 
 import kotlinx.coroutines.flow.Flow
 
@@ -27,4 +27,11 @@ interface SongsRepository {
      * Update item in the data source
      */
     suspend fun updateItem(song: Song)
+
+    fun getPlaylistStream(playlist: String): Flow<List<Song>>
+
+    fun getPlaylistsStream(playlists: List<String>): Flow<List<Song>>
+    suspend fun nukeTable()
+
+    fun getLeastSongs(playlist: String): Flow<List<Song>>
 }

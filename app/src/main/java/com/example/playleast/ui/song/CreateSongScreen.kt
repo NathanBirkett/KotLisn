@@ -1,30 +1,21 @@
-package com.example.playleast.ui
+package com.example.playleast.ui.song
 
-import android.graphics.Paint.Align
-import android.provider.ContactsContract.Data
-import android.widget.CheckBox
-import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextStyle
@@ -37,17 +28,23 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.playleast.data.Datasource
-import com.example.playleast.ui.song.CreateSongViewModel
-import com.example.playleast.ui.song.SongUIState
+import com.example.playleast.data.playlist.Playlist
+import com.example.playleast.ui.AppViewModelProvider
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.views.YouTubePlayerView
+import kotlinx.coroutines.launch
+
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalUnitApi::class)
 @Composable
 fun CreateSongScreen(
-        onAddSong: () -> Unit,
+        navigateBack: () -> Unit,
         modifier: Modifier = Modifier,
-        viewModel: CreateSongViewModel = viewModel(factory = AppViewModelProvider.Factory)) {
+        viewModel: CreateSongViewModel = viewModel(factory = AppViewModelProvider.Factory)
+) {
     var songUIState = viewModel.songUIState
+    val coroutineScope = rememberCoroutineScope()
+    val playlists by viewModel.playlists.collectAsState()
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
@@ -59,9 +56,14 @@ fun CreateSongScreen(
             onValueChange = viewModel::updateUIState
         )
         YoutubeScreen(videoId = songUIState.url.removePrefix("https://youtu.be/"))
-        Playlists()
+        Playlists(songUIState = songUIState, playlists = playlists)
         Button(
-            onClick = onAddSong,
+            onClick = {coroutineScope.launch {
+                if (viewModel.download()) {
+                    viewModel.saveSong()
+                    navigateBack()
+                }
+            }},
             enabled = songUIState.actionEnabled
         ) {
             Text("Add Song")
@@ -72,11 +74,9 @@ fun CreateSongScreen(
 @OptIn(ExperimentalUnitApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun DataEntry(songUIState: SongUIState, onValueChange: (SongUIState) -> Unit, modifier: Modifier = Modifier) {
-    var url by remember { mutableStateOf("") }
-    var name by remember { mutableStateOf("") }
     Column {
         TextField(
-            value = url,
+            value = songUIState.url,
             onValueChange = {onValueChange(songUIState.copy(url = it))},
             label = { Text("YouTube Share URL") },
             textStyle = TextStyle(fontSize = TextUnit(32f, TextUnitType.Sp)),
@@ -85,7 +85,7 @@ fun DataEntry(songUIState: SongUIState, onValueChange: (SongUIState) -> Unit, mo
                 .padding(20.dp)
         )
         TextField(
-            value = name,
+            value = songUIState.title,
             onValueChange = {onValueChange(songUIState.copy(title = it))},
             label = { Text("Song Name") },
             textStyle = TextStyle(fontSize = TextUnit(32f, TextUnitType.Sp)),
@@ -101,6 +101,16 @@ fun YoutubeScreen(
     videoId: String,
     modifier: Modifier = Modifier
 ) {
+
+//    if (! Python.isStarted()) {
+//        Python.start(AndroidPlatform(LocalContext.current))
+//    }
+//    var py = Python.getInstance()
+//    var pytube = py.getModule("pytube")
+//    var yt = pytube.callAttr("YouTube", "https://youtu.be/n2X36tiDAuU")
+//    var audio = yt.get("streams")!!.callAttr("filter", Kwarg("only_audio", "True")).callAttr("first")
+//    var out_file = audio.callAttr("download", Kwarg("output_path", "songs/"), Kwarg("filename", "name"))
+
     AndroidView(factory = {
         println("loading")
         var view = YouTubePlayerView(it)
@@ -114,7 +124,7 @@ fun YoutubeScreen(
 }
 
 @Composable
-fun Playlists(modifier: Modifier = Modifier) {
+fun Playlists(songUIState: SongUIState, playlists: List<Playlist>, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .padding(start = 64.dp)
@@ -124,17 +134,20 @@ fun Playlists(modifier: Modifier = Modifier) {
             text = "Playlists",
             fontSize = 32.sp
         )
-        Datasource().getPlaylists().forEach {
-            var checked by remember { mutableStateOf(false)}
+        playlists.forEach {playlist ->
             Row(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Checkbox(
-                    checked = checked,
-                    onCheckedChange = {checked = it}
+                    checked = songUIState.playlists.contains(playlist.title),
+                    onCheckedChange = {
+                        if (it) {
+                            songUIState.playlists.add(playlist.title)
+                        } else songUIState.playlists.remove(playlist.title)
+                    }
                 )
                 Text(
-                    text = it,
+                    text = playlist.title,
                     fontSize = 24.sp,
                     modifier = modifier.padding(start = 2.dp)
                 )
@@ -146,5 +159,5 @@ fun Playlists(modifier: Modifier = Modifier) {
 @Preview(showBackground = true)
 @Composable
 fun CreateSongScreenPreview() {
-    CreateSongScreen(onAddSong = {})
+//    CreateSongScreen(onAddSong = {})
 }
