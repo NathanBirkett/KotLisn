@@ -25,6 +25,8 @@ class OfflinePlaylistsRepository(private val playlistDao: PlaylistDao): Playlist
     override suspend fun nukeTable() = playlistDao.nukeTable()
 
     override fun getLeastPlaylists(playlists: List<String>): Flow<List<Playlist>> {
-        return playlistDao.getAllItems().map {list -> list.filter { playlists.contains(it.title) }.filter { it.length == list.filter { playlists.contains(it.title) }[0].length}}
+        return playlistDao.getAllItems().map {list -> list.filter { playlists.contains(it.title) }
+//            .filter { it.length == list.filter { playlists.contains(it.title) }[0].length}
+        }
     }
 }

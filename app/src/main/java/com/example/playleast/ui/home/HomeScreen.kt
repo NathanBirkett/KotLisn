@@ -3,6 +3,7 @@ package com.example.playleast.ui.home
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -121,6 +122,7 @@ fun HomeScreen(
     val coroutineScope = rememberCoroutineScope()
     val allSongs by viewModel.allSongs.collectAsState()
     val playlists by viewModel.playlists.collectAsState()
+    val pauseAtEnd by viewModel.pauseAtEnd.collectAsState()
     var listPlaylists = playlists.removeSurrounding("[", "]").split(", ").filter {it != ""}
 
 
@@ -144,16 +146,18 @@ fun HomeScreen(
             onValueChange = {viewModel.updatePlaylist(it); println(it)},
             onNewPlaylist = onNewPlaylist,
             allPlaylists = allPlaylists,
+            isPlaylistAll = listPlaylists.size == allPlaylists.size || listPlaylists.isEmpty(),
             playlists = listPlaylists.toMutableList()
         )
         Tools(
             currentSong = selectedSong,
             onStop = {viewModel.stopSong()},
-            onNext = {viewModel.logSongDuration(); viewModel.nextRandom()},
+            onNext = {viewModel.logSongDuration(); viewModel.nextRandom(); viewModel.playSong()},
             onPlayButton = {viewModel.playSong()},
             resetTimes = {viewModel.resetTimes()},
             progress = progress,
             paused = viewModel.paused || !viewModel.mediaPlayer.isPlaying,
+            pauseAtEnd = pauseAtEnd,
             modifier = Modifier.align(Alignment.BottomCenter)
         )
     }
@@ -167,6 +171,7 @@ fun Header(
     onNewPlaylist: () -> Unit,
     allPlaylists: List<Playlist>,
     playlists: MutableList<String>,
+    isPlaylistAll: Boolean,
     modifier: Modifier = Modifier
 ) {
 //    var expanded by remember { mutableStateOf(false) }
@@ -178,56 +183,15 @@ fun Header(
             mutableStateOf(Playlist(title = "all"))
 //        }
     }
-    /*
-    ExposedDropdownMenuBox(
-    expanded = expanded,
-    onExpandedChange = {
-    expanded = !expanded
-    },
-    ) {
-    TextField(
-    value = selectedItem.title,
-    onValueChange = {},
-    readOnly = true,
-    label = { Text("Playlist") },
-    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-    colors = ExposedDropdownMenuDefaults.textFieldColors(),
-    modifier = Modifier
-    .menuAnchor()
-    .fillMaxWidth()
-    )
-    ExposedDropdownMenu(
-    expanded = expanded,
-    onDismissRequest = { expanded = false },
-    ) {
-    DropdownMenuItem(
-    text = {Text("all")},
-    onClick = {
-    selectedItem = Playlist(title = "all")
-    expanded = false
-    onValueChange("")
-    }
-    )
-    playlists.forEach { selectedOption ->
-    DropdownMenuItem(
-    onClick = {
-    selectedItem = selectedOption
-    expanded = false
-    onValueChange(selectedOption.title)
-    },
-    text = {Text(selectedOption.title)}
-    )
-    }
-    DropdownMenuItem(
-    text = {Text("New Playlist...")},
-    onClick = onNewPlaylist
-    )
-
-    }
-    }
-    */
     var expanded by remember{ mutableStateOf(false)}
-    Box {
+    val interactionSource = remember { MutableInteractionSource() }
+    Box(
+        modifier = Modifier
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null
+            ) { }
+    ) {
         Text(
             text = playlists.toString(),
             fontSize = 36.sp,
@@ -247,7 +211,12 @@ fun Header(
                     Row {
                         Text(
                             text = playlist.title,
-                            fontSize = 24.sp
+                            fontSize = 24.sp,
+                            modifier = Modifier.clickable {
+                                playlists.removeAll(playlists)
+                                playlists.add(playlist.title)
+                                onValueChange(playlists)
+                            }
                         )
                         Checkbox(
                             checked = playlists.contains(playlist.title),
@@ -261,6 +230,17 @@ fun Header(
                             }
                         )
                     }
+                }
+                Button(onClick = {
+                    if (playlists.isEmpty()) {
+                        playlists.addAll(allPlaylists.map { it.title })
+                        playlists.toSet().toMutableList()
+                    } else {
+                        playlists.removeIf { it != "" }
+                    }
+                    onValueChange(playlists)
+                }) {
+                    Text(text = if (playlists.isEmpty()) "all" else "none")
                 }
                 Button(onClick = onNewPlaylist) {
                     Text(text = "New Playlist...")
@@ -354,6 +334,7 @@ fun Tools(
     resetTimes: () -> Unit,
     progress: Float,
     paused: Boolean,
+    pauseAtEnd: Boolean,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -373,7 +354,11 @@ fun Tools(
             progress = progress
         )
         Row {
-            ToolButton(painterResource(R.drawable.autostop), onClick = onStop)
+            ToolButton(
+                painterResource(R.drawable.autostop),
+                onClick = onStop,
+                background = if (pauseAtEnd) Color.Gray else Color.DarkGray
+            )
             ToolButton(
                 painter = painterResource(id = if (paused) R.drawable.play else R.drawable.pause),
                 onClick = onPlayButton
@@ -385,7 +370,7 @@ fun Tools(
 }
 
 @Composable
-fun ToolButton(painter: Painter, onClick: () -> Unit, modifier: Modifier = Modifier) {
+fun ToolButton(painter: Painter, onClick: () -> Unit, modifier: Modifier = Modifier, background: Color = Color.DarkGray) {
     IconButton(
         onClick = onClick,
         modifier = modifier
@@ -398,7 +383,7 @@ fun ToolButton(painter: Painter, onClick: () -> Unit, modifier: Modifier = Modif
             contentDescription = null,
             modifier = modifier
                 .fillMaxSize()
-                .background(Color.DarkGray)
+                .background(background)
         )
     }
 }

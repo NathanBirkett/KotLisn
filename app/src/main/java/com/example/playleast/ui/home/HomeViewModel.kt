@@ -13,11 +13,16 @@ import com.example.playleast.data.song.Song
 import com.example.playleast.data.song.SongsRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.count
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlin.concurrent.thread
@@ -25,7 +30,7 @@ import kotlin.concurrent.thread
 class HomeViewModel(private val savedStateHandle: SavedStateHandle, private val songsRepository: SongsRepository, private val playlistsRepository: PlaylistsRepository, private val application: Application): ViewModel() {
 
     fun selectSong(song: Song) {
-        println("updating song")
+        println("select song: ${song.title}")
         savedStateHandle["selected"] = song.title
         savedStateHandle["id_selected"] = appUIState.value.playlist.indexOf(song)
         mediaPlayer.reset()
@@ -36,7 +41,11 @@ class HomeViewModel(private val savedStateHandle: SavedStateHandle, private val 
 
 
     val selectedSong: StateFlow<String> =
-        savedStateHandle.getStateFlow<String>("selected", "")
+        savedStateHandle.getStateFlow<String>("selected", "").onEach { println("On Each: $it") }.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(TIMEOUT_MILLIS),
+            initialValue = ""
+        )
 
     val playlistTitle: StateFlow<String> =
         savedStateHandle.getStateFlow("playlist", "")
@@ -47,10 +56,11 @@ class HomeViewModel(private val savedStateHandle: SavedStateHandle, private val 
     val playlists: StateFlow<String> =
         savedStateHandle.getStateFlow("playlists", "[]")
 
+    val pauseAtEnd: StateFlow<Boolean> =
+        savedStateHandle.getStateFlow("pauseAtEnd", false)
+
 
     fun updatePlaylist(playlists: List<String>) {
-        println("updating playlist: $playlists")
-        println("updatingplaylist: ${appUIState.value.playlists}")
         savedStateHandle["playlists"] = playlists.toString()
         if (mediaPlayer.isPlaying || paused) {
             mediaPlayer.stop()
@@ -59,6 +69,7 @@ class HomeViewModel(private val savedStateHandle: SavedStateHandle, private val 
         savedStateHandle["id_selected"] = 0
         runBlocking { launch {
             songsRepository.getPlaylistsStream(playlists).firstOrNull {
+                println("updating playlist: ${it.random().title}")
                 savedStateHandle["selected"] = it.random().title
                 return@firstOrNull true
             }
@@ -66,27 +77,26 @@ class HomeViewModel(private val savedStateHandle: SavedStateHandle, private val 
     }
 
     fun nextSong() {
-        savedStateHandle["id_selected"] = Math.floorMod(savedStateHandle.get<Int>("id_selected")!! + 1, appUIState.value.playlist.size)
-        savedStateHandle["selected"] = appUIState.value.playlist[savedStateHandle["id_selected"] ?: 0].title
+//        savedStateHandle["id_selected"] = Math.floorMod(savedStateHandle.get<Int>("id_selected")!! + 1, appUIState.value.playlist.size)
+//        savedStateHandle["selected"] = appUIState.value.playlist[savedStateHandle["id_selected"] ?: 0].title
     }
 
-    var pauseAtEnd = false
-
     fun stopSong() {
-        pauseAtEnd = true
+        savedStateHandle["pauseAtEnd"] = savedStateHandle.get<Boolean>("pauseAtEnd") != true
     }
 
     fun nextRandom() {
         runBlocking { launch {
-            println("next randoming ${savedStateHandle.get<String>("selected")}")
             var playlist: String
-            playlistsRepository.getLeastPlaylists(savedStateHandle.get<String>("playlists")!!.removeSurrounding("[", "]").split(", ").filter {it != ""}).first {
-                playlist = it.map {pllst -> pllst.title }.random()
+            playlistsRepository.getLeastPlaylists(savedStateHandle.get<String>("playlists")!!.removeSurrounding("[", "]").split(", ").filter {it != ""}).first {list ->
+                playlist = list.filter { it.length == list[0].length}.map {pllst -> pllst.title }.random()
+                println("playlist: $playlist")
                 songsRepository.getLeastSongs(playlist).first {songs ->
-                    println(songs)
+                    println("songs: $songs")
                     val song = songs.random()
+                    println("next random: ${song.title}")
                     savedStateHandle["selected"] = song.title
-                    println(appUIState.value.playlist)
+                    println("selected title: ${savedStateHandle.get<String>("selected")}")
                     appUIState.value.playlist.forEach { playlistSong ->
                         if (playlistSong.title == song.title) savedStateHandle["id_selected"] = appUIState.value.playlist.indexOf(playlistSong)
                     }
@@ -95,7 +105,6 @@ class HomeViewModel(private val savedStateHandle: SavedStateHandle, private val 
                 return@first true
             }
             mediaPlayer.reset()
-            playSong()
         } }
     }
 
@@ -136,7 +145,7 @@ class HomeViewModel(private val savedStateHandle: SavedStateHandle, private val 
         )
 
     var allPlaylists: StateFlow<List<Playlist>> =
-        playlistsRepository.getAllItemsStream()
+        playlistsRepository.getAllItemsStream().distinctUntilChanged { old, new -> old.size == new.size } .onEach { updatePlaylist(it.map { it.title }); println("all playlists: $it") }
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(TIMEOUT_MILLIS),
@@ -182,9 +191,9 @@ class HomeViewModel(private val savedStateHandle: SavedStateHandle, private val 
 //                        return@firstOrNull true
 //                    }
 //                }
-                playlistsRepository.getLeastPlaylists(savedStateHandle.get<String>("playlists")!!.removeSurrounding("[", "]").split(", ").filter {it != ""}).first {
-                    it.filter {playlist -> song?.playlists!!.contains(playlist.title) }.random()
-                    playlistsRepository.getItemStream(it.filter {playlist -> song?.playlists!!.contains(playlist.title) }.random().title).firstOrNull {playlist ->
+                playlistsRepository.getLeastPlaylists(savedStateHandle.get<String>("playlists")!!.removeSurrounding("[", "]").split(", ").filter {it != ""}).first {list ->
+                    list.filter {playlist -> song?.playlists!!.contains(playlist.title) }.filter { it.length == list.filter {playlist -> song?.playlists!!.contains(playlist.title) }[0].length}.random()
+                    playlistsRepository.getItemStream(list.filter {playlist -> song?.playlists!!.contains(playlist.title) }.random().title).firstOrNull {playlist ->
                         if (playlist != null) {
                             playlistsRepository.updateItem(playlist.copy(length = playlist.length + mediaPlayer.duration))
                         }
@@ -203,6 +212,7 @@ class HomeViewModel(private val savedStateHandle: SavedStateHandle, private val 
                 it.forEach { song ->
                     songsRepository.updateItem(song.copy(length = 0))
                 }
+                println("resetting times: ${it.random().title}")
                 savedStateHandle["selected"] = it.random().title
                 return@first true
             }
@@ -217,18 +227,18 @@ class HomeViewModel(private val savedStateHandle: SavedStateHandle, private val 
             mediaPlayer.stop()
             if (paused) paused = false
         }
-        runBlocking { launch {
-            songsRepository.getPlaylistsStream(savedStateHandle.get<String>("playlists")!!.removeSurrounding("[" ,"]").split(", ").filter {it != ""}).firstOrNull {
-                savedStateHandle["selected"] = it.random().title
-                return@firstOrNull true
-            }
-        } }
+//        runBlocking { launch {
+//            songsRepository.getPlaylistsStream(savedStateHandle.get<String>("playlists")!!.removeSurrounding("[" ,"]").split(", ").filter {it != ""}).firstOrNull {
+//                savedStateHandle["selected"] = it.random().title
+//                return@firstOrNull true
+//            }
+//        } }
     }
 
     init {
-        updatePlaylist(allPlaylists.value.map { it.title })
-        savedStateHandle["id_selected"] = 0
+//        savedStateHandle["id_selected"] = 0
         mediaPlayer.setOnPreparedListener {
+            println("song after datasource: ${savedStateHandle.get<String>("selected")!!}")
             println("starting song")
             mediaPlayer.start()
             thread {
@@ -246,10 +256,11 @@ class HomeViewModel(private val savedStateHandle: SavedStateHandle, private val 
         mediaPlayer.setOnCompletionListener {
             println("calling next random")
             logSongDuration()
-            if (!pauseAtEnd) {
-                nextRandom()
+            nextRandom()
+            if (savedStateHandle.get<Boolean>("pauseAtEnd") == false) {
+                playSong()
             }
-            pauseAtEnd = false
+            savedStateHandle["pauseAtEnd"] = false
         }
 
     }

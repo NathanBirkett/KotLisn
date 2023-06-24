@@ -32,14 +32,14 @@ class OfflineSongsRepository(private val songDao: SongDao): SongsRepository {
         mutPlaylists.remove("")
         builder.append(mutPlaylists.joinToString(separator = " OR ") { "playlists LIKE '%$it%'" })
         builder.append(" ORDER BY title ASC")
-        println(builder)
+//        println(builder)
         return songDao.getPlaylist(SimpleSQLiteQuery(builder.toString())).map {list -> list.filter { it.playlists.intersect(playlists).isNotEmpty() } }
     }
 
     override suspend fun nukeTable() = songDao.nukeTable()
 
     override fun getLeastSongs(playlist: String): Flow<List<Song>> {
-        println("SELECT * FROM song WHERE playlists LIKE '%$playlist%' AND length = (SELECT MIN(length) FROM song WHERE playlists LIKE '%$playlist%')")
+//        println("SELECT * FROM song WHERE playlists LIKE '%$playlist%' AND length = (SELECT MIN(length) FROM song WHERE playlists LIKE '%$playlist%')")
         return songDao.getLeastSongs(SimpleSQLiteQuery("SELECT * FROM song WHERE playlists LIKE '%$playlist%' AND length = (SELECT MIN(length) FROM song WHERE playlists LIKE '%$playlist%')"))
     }
 }
