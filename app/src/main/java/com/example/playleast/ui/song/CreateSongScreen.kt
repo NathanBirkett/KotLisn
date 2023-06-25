@@ -18,6 +18,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.ExperimentalUnitApi
@@ -27,9 +28,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.playleast.data.Datasource
 import com.example.playleast.data.playlist.Playlist
 import com.example.playleast.ui.AppViewModelProvider
+import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.YouTubePlayer
+import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.listeners.AbstractYouTubePlayerListener
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.views.YouTubePlayerView
 import kotlinx.coroutines.launch
 
@@ -55,7 +57,10 @@ fun CreateSongScreen(
             songUIState = songUIState,
             onValueChange = viewModel::updateUIState
         )
-        YoutubeScreen(videoId = songUIState.url.removePrefix("https://youtu.be/"))
+        if (songUIState.url.isNotEmpty()) {
+
+            YoutubeScreen(videoId = songUIState.url.removePrefix("https://youtu.be/"))
+        }
         Playlists(songUIState = songUIState, playlists = playlists)
         Button(
             onClick = {coroutineScope.launch {
@@ -101,26 +106,19 @@ fun YoutubeScreen(
     videoId: String,
     modifier: Modifier = Modifier
 ) {
-
-//    if (! Python.isStarted()) {
-//        Python.start(AndroidPlatform(LocalContext.current))
-//    }
-//    var py = Python.getInstance()
-//    var pytube = py.getModule("pytube")
-//    var yt = pytube.callAttr("YouTube", "https://youtu.be/n2X36tiDAuU")
-//    var audio = yt.get("streams")!!.callAttr("filter", Kwarg("only_audio", "True")).callAttr("first")
-//    var out_file = audio.callAttr("download", Kwarg("output_path", "songs/"), Kwarg("filename", "name"))
-
     AndroidView(factory = {
-        println("loading")
         var view = YouTubePlayerView(it)
+        val fragment = view.addYouTubePlayerListener(
+            object : AbstractYouTubePlayerListener() {
+                override fun onReady(youTubePlayer: YouTubePlayer) {
+                    super.onReady(youTubePlayer)
+                    youTubePlayer.loadVideo(videoId, 0f)
+                }
+            }
+        )
         view
-        },
-        update = {
-        },
-        modifier = modifier
-            .padding(20.dp)
-    )
+    },
+    modifier = Modifier.padding(12.dp))
 }
 
 @Composable

@@ -185,7 +185,7 @@ fun EditPlaylistScreen(
                     }
                 }
                 item {
-                    Button(onClick = navigateBack, modifier = Modifier.align(Alignment.BottomCenter)) {Text("done")}
+                    Button(onClick = navigateBack, modifier = Modifier) {Text("done")}
                 }
             }
         }

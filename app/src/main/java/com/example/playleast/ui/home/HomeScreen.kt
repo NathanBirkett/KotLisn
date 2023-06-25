@@ -1,5 +1,6 @@
 package com.example.playleast.ui.home
 
+import android.graphics.ColorSpace
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
@@ -24,6 +25,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -204,53 +206,66 @@ fun Header(
                     expanded = !expanded
 //                    popup.captureFocus()
                 }
+                .background(Color.Black)
         )
         if (expanded) {
-            Column(
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier
+                    .clip(RoundedCornerShape(0, 0, 15, 15))
                     .background(Color.Black)
-//                    .padding(48.dp)
+                    .padding(12.dp)
+                    .fillMaxWidth()
             ) {
-                allPlaylists.forEach {playlist ->
-                    Row {
-                        Text(
-                            text = playlist.title,
-                            fontSize = 24.sp,
-                            modifier = Modifier.clickable {
-                                playlists.removeAll(playlists)
-                                playlists.add(playlist.title)
-                                onValueChange(playlists)
-                            }
-                        )
-                        Checkbox(
-                            checked = playlists.contains(playlist.title),
-                            onCheckedChange = {
-                                if (it) {
+                Column(
+                    modifier = Modifier.weight(0.55f)
+                ) {
+                    allPlaylists.forEach { playlist ->
+                        Row {
+                            Text(
+                                text = playlist.title,
+                                fontSize = 24.sp,
+                                modifier = Modifier.clickable {
+                                    playlists.removeAll(playlists)
                                     playlists.add(playlist.title)
-                                } else {
-                                    playlists.remove(playlist.title)
+                                    onValueChange(playlists)
                                 }
-                                onValueChange(playlists)
-                            }
-                        )
+                            )
+                            Checkbox(
+                                checked = playlists.contains(playlist.title),
+                                onCheckedChange = {
+                                    if (it) {
+                                        playlists.add(playlist.title)
+                                    } else {
+                                        playlists.remove(playlist.title)
+                                    }
+                                    onValueChange(playlists)
+                                }
+                            )
+                        }
                     }
                 }
-                Button(onClick = {
-                    if (playlists.isEmpty()) {
-                        playlists.addAll(allPlaylists.map { it.title })
-                        playlists.toSet().toMutableList()
-                    } else {
-                        playlists.removeIf { it != "" }
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    modifier = Modifier.weight(0.45f)
+                ) {
+                    Button(onClick = {
+                        if (playlists.isEmpty()) {
+                            playlists.addAll(allPlaylists.map { it.title })
+                            playlists.toSet().toMutableList()
+                        } else {
+                            playlists.removeIf { it != "" }
+                        }
+                        onValueChange(playlists)
+                    }) {
+                        Text(text = if (playlists.isEmpty()) "all" else "none")
                     }
-                    onValueChange(playlists)
-                }) {
-                    Text(text = if (playlists.isEmpty()) "all" else "none")
-                }
-                Button(onClick = onNewPlaylist) {
-                    Text(text = "New Playlist...")
-                }
-                Button(onClick = {expanded = false}) {
-                    Text(text = "done")
+                    Button(onClick = onNewPlaylist) {
+                        Text(text = "New Playlist...")
+                    }
+                    Button(onClick = { expanded = false }) {
+                        Text(text = "done")
+                    }
                 }
             }
         }
@@ -276,19 +291,17 @@ fun Playlist(
             .fillMaxWidth()
             .fillMaxHeight()
     ) {
-//        item {
-//            Spacer(modifier = Modifier.padding(32.dp))
-//        }
         items(if (isPlaylistAll) allSongs else playlist) {
                 song -> Text(
             text = song.title,
             fontSize = 36.sp,
+            lineHeight = 36.sp,
             modifier = modifier
                 .clickable {
                     println(currentSong)
                     onSongSelected(song)
                 }
-                .background(if (currentSong == song.title) Color.Blue else Color.Transparent)
+                .background(if (currentSong == song.title) Color(4278225151) else Color.Transparent)
         )
         }
         item {
@@ -346,7 +359,7 @@ fun Tools(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceEvenly,
         modifier = modifier
-            .background(Color.Gray.copy(alpha = 0.75f))
+            .background(Color(136, 136, 136, 136))
             .fillMaxWidth()
             .height(256.dp)
             .clickable(
@@ -367,7 +380,7 @@ fun Tools(
             ToolButton(
                 painterResource(R.drawable.autostop),
                 onClick = onStop,
-                background = if (pauseAtEnd) Color.Gray else Color.DarkGray
+                background = if (pauseAtEnd) Color(4294936576) else Color(4278225151)
             )
             ToolButton(
                 painter = painterResource(id = if (paused) R.drawable.play else R.drawable.pause),
@@ -380,7 +393,7 @@ fun Tools(
 }
 
 @Composable
-fun ToolButton(painter: Painter, onClick: () -> Unit, modifier: Modifier = Modifier, background: Color = Color.DarkGray) {
+fun ToolButton(painter: Painter, onClick: () -> Unit, modifier: Modifier = Modifier, background: Color = Color(4278225151)) {
     IconButton(
         onClick = onClick,
         modifier = modifier
