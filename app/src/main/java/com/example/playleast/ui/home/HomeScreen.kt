@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -26,6 +27,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderColors
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -125,6 +129,8 @@ fun HomeScreen(
     val allSongs by viewModel.allSongs.collectAsState()
     val playlists by viewModel.playlists.collectAsState()
     val pauseAtEnd by viewModel.pauseAtEnd.collectAsState()
+    val paused by viewModel.isPaused.collectAsState()
+
     var listPlaylists = playlists.removeSurrounding("[", "]").split(", ").filter {it != ""}
 
 
@@ -161,8 +167,10 @@ fun HomeScreen(
                 onPlayButton = { viewModel.playSong() },
                 resetTimes = { viewModel.resetTimes() },
                 progress = progress,
-                paused = viewModel.paused || !viewModel.mediaPlayer.isPlaying,
+//                paused = viewModel.paused || !viewModel.mediaPlayer.isPlaying,
+                paused = paused,
                 pauseAtEnd = pauseAtEnd,
+                onProgressChange = {viewModel.onProgressChange(it)},
                 modifier = Modifier.align(Alignment.BottomCenter)
             )
         }
@@ -352,9 +360,12 @@ fun Tools(
     progress: Float,
     paused: Boolean,
     pauseAtEnd: Boolean,
+    onProgressChange: (Float) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val interactionSource = remember { MutableInteractionSource() }
+    var sliderPosition by remember { mutableStateOf(0f) }
+    var seeking by remember { mutableStateOf(false) }
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceEvenly,
@@ -372,9 +383,21 @@ fun Tools(
             text = currentSong,
             fontSize = 24.sp
         )
-//        Text("progress bar")
-        LinearProgressIndicator(
-            progress = progress
+        if (!seeking && !paused) sliderPosition = progress
+        Slider(
+            value = sliderPosition,
+            onValueChange = {
+                if (!paused && !seeking) onPlayButton()
+                seeking = true
+                sliderPosition = it
+            },
+            valueRange = 0f..1f,
+            onValueChangeFinished = {
+                seeking = false
+                onProgressChange(sliderPosition)
+            },
+            colors = SliderDefaults.colors(thumbColor = Color(0, 136, 255), activeTrackColor = Color(255, 136, 0)),
+            modifier = Modifier.width(300.dp)
         )
         Row {
             ToolButton(

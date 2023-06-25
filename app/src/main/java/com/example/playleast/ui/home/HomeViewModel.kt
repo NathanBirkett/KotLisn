@@ -59,6 +59,9 @@ class HomeViewModel(private val savedStateHandle: SavedStateHandle, private val 
     val pauseAtEnd: StateFlow<Boolean> =
         savedStateHandle.getStateFlow("pauseAtEnd", false)
 
+    val isPaused: StateFlow<Boolean> =
+        savedStateHandle.getStateFlow("paused", false)
+
 
     fun updatePlaylist(playlists: List<String>) {
         savedStateHandle["playlists"] = playlists.toString()
@@ -173,6 +176,10 @@ class HomeViewModel(private val savedStateHandle: SavedStateHandle, private val 
         }
     }
 
+    fun onProgressChange(value: Float) {
+        mediaPlayer.seekTo((mediaPlayer.duration * value).toInt())
+    }
+
     fun logSongDuration() {
         runBlocking { launch {
             songsRepository.getItemStream(savedStateHandle["selected"]!!).firstOrNull { song ->
@@ -251,10 +258,12 @@ class HomeViewModel(private val savedStateHandle: SavedStateHandle, private val 
             thread {
                 while (true) {
                     Thread.sleep(100)
-                    if (mediaPlayer.isPlaying) {
+                    if (mediaPlayer.isPlaying || paused) {
+                        savedStateHandle["paused"] = paused
                         savedStateHandle["progress"] =
                             (mediaPlayer.currentPosition.toDouble() / mediaPlayer.duration.toDouble()).toFloat()
                     } else {
+                        savedStateHandle["paused"] = true
                         return@thread
                     }
                 }
@@ -269,7 +278,9 @@ class HomeViewModel(private val savedStateHandle: SavedStateHandle, private val 
             }
             savedStateHandle["pauseAtEnd"] = false
         }
-
+        mediaPlayer.setOnSeekCompleteListener {
+            playSong()
+        }
     }
 
     companion object {
