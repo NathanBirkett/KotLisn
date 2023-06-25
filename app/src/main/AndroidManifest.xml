@@ -15,6 +15,15 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Playleast"
         tools:targetApi="31">
+        <service android:name=".MyMediaBrowserService"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.media.browse.MediaBrowserService"/>
+            </intent-filter>
+        </service>
+        <meta-data
+            android:name="androidx.car.app.TintableAttributionIcon"
+            android:resource="@drawable/autostop"/>
         <activity
             android:name=".MainActivity"
             android:exported="true"
