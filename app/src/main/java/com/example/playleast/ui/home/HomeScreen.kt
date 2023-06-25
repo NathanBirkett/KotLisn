@@ -126,22 +126,9 @@ fun HomeScreen(
     var listPlaylists = playlists.removeSurrounding("[", "]").split(", ").filter {it != ""}
 
 
-    Box {
-        Playlist(
-            currentSong = selectedSong,
-            playlist = appUIState.playlist,
-            allSongs = allSongs,
-            onSongSelected = {viewModel.selectSong(it)},
-            isPlaylistAll = listPlaylists.size == allPlaylists.size || listPlaylists.isEmpty(),
-            isOnePlaylist = listPlaylists.size == 1,
-            onNewSong = onNewSong,
-            onEditSongs = onEditSongs,
-            onRemovePlaylist = { coroutineScope.launch {
-                viewModel.removePlaylist(listPlaylists[0])
-            }}
-        )
+    Column {
         Header(
-            modifier = Modifier.align(Alignment.TopCenter),
+//            modifier = Modifier.align(Alignment.TopCenter),
             onNewSong = onNewSong,
             onValueChange = {viewModel.updatePlaylist(it); println(it)},
             onNewPlaylist = onNewPlaylist,
@@ -149,17 +136,34 @@ fun HomeScreen(
             isPlaylistAll = listPlaylists.size == allPlaylists.size || listPlaylists.isEmpty(),
             playlists = listPlaylists.toMutableList()
         )
-        Tools(
-            currentSong = selectedSong,
-            onStop = {viewModel.stopSong()},
-            onNext = {viewModel.logSongDuration(); viewModel.nextRandom(); viewModel.playSong()},
-            onPlayButton = {viewModel.playSong()},
-            resetTimes = {viewModel.resetTimes()},
-            progress = progress,
-            paused = viewModel.paused || !viewModel.mediaPlayer.isPlaying,
-            pauseAtEnd = pauseAtEnd,
-            modifier = Modifier.align(Alignment.BottomCenter)
-        )
+        Box {
+            Playlist(
+                currentSong = selectedSong,
+                playlist = appUIState.playlist,
+                allSongs = allSongs,
+                onSongSelected = { viewModel.selectSong(it) },
+                isPlaylistAll = listPlaylists.size == allPlaylists.size || listPlaylists.isEmpty(),
+                isOnePlaylist = listPlaylists.size == 1,
+                onNewSong = onNewSong,
+                onEditSongs = onEditSongs,
+                onRemovePlaylist = {
+                    coroutineScope.launch {
+                        viewModel.removePlaylist(listPlaylists[0])
+                    }
+                }
+            )
+            Tools(
+                currentSong = selectedSong,
+                onStop = { viewModel.stopSong() },
+                onNext = { viewModel.logSongDuration(); viewModel.nextRandom(); viewModel.playSong() },
+                onPlayButton = { viewModel.playSong() },
+                resetTimes = { viewModel.resetTimes() },
+                progress = progress,
+                paused = viewModel.paused || !viewModel.mediaPlayer.isPlaying,
+                pauseAtEnd = pauseAtEnd,
+                modifier = Modifier.align(Alignment.BottomCenter)
+            )
+        }
     }
 }
 
@@ -272,9 +276,9 @@ fun Playlist(
             .fillMaxWidth()
             .fillMaxHeight()
     ) {
-        item {
-            Spacer(modifier = Modifier.padding(32.dp))
-        }
+//        item {
+//            Spacer(modifier = Modifier.padding(32.dp))
+//        }
         items(if (isPlaylistAll) allSongs else playlist) {
                 song -> Text(
             text = song.title,
@@ -337,6 +341,7 @@ fun Tools(
     pauseAtEnd: Boolean,
     modifier: Modifier = Modifier
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceEvenly,
@@ -344,6 +349,11 @@ fun Tools(
             .background(Color.Gray.copy(alpha = 0.75f))
             .fillMaxWidth()
             .height(256.dp)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = { }
+            )
     ) {
         Text(
             text = currentSong,

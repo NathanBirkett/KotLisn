@@ -2,19 +2,21 @@ package com.example.playleast.ui.edit
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
@@ -25,7 +27,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.ExperimentalUnitApi
@@ -34,6 +38,7 @@ import androidx.compose.ui.unit.TextUnitType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.playleast.R
 import com.example.playleast.ui.AppViewModelProvider
 import com.example.playleast.ui.home.HomeViewModel
 
@@ -71,7 +76,10 @@ fun EditPlaylistScreen(
                     .fillMaxWidth()
             ) {
                 items(if (isAll) homeViewModel.allSongs.value else appUIState.playlist) { song ->
-                    Row() {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
                         if (renamePopup) {
                             TextField(
                                 value = viewModel.uiState.newTitle,
@@ -85,28 +93,58 @@ fun EditPlaylistScreen(
                                 label = { Text("Title") },
                                 textStyle = TextStyle(fontSize = TextUnit(32f, TextUnitType.Sp)),
                                 modifier = Modifier
-                                    .width(300.dp)
-                                    .padding(20.dp)
                             )
                         } else {
-                            Text(text = song.title, fontSize = 24.sp)
+                            Text(
+                                text = song.title,
+                                fontSize = 24.sp,
+                                modifier = Modifier
+                                    .weight(0.7f)
+                            )
                         }
-                        Button(onClick = {
-                            if (renamePopup) {
-                                viewModel.renameSong(song)
-                            }
-                            renamePopup = !renamePopup
-                        }) {
-                            Text("rename")
+                        IconButton(
+                            onClick = {
+                                if (renamePopup) {
+                                    viewModel.renameSong(song)
+                                }
+                                renamePopup = !renamePopup
+                            },
+                            modifier = modifier
+                                .fillMaxSize()
+                                .clip(RoundedCornerShape(percent = 30))
+                                .weight(0.15f)
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.edit),
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .fillMaxHeight()
+                                    .aspectRatio(1F)
+                                    .background(Color.DarkGray)
+                            )
                         }
-                        if (isAll) {
-                            Button(onClick = {viewModel.delete(song)}) {
-                                Text("delete")
-                            }
-                        } else {
-                            Button(onClick = {viewModel.remove(song, listPlaylist[0])}) {
-                                Text("remove")
-                            }
+                        IconButton(
+                            onClick = {
+                                if (isAll) {
+                                    viewModel.delete(song)
+                                } else {
+                                    viewModel.remove(song, listPlaylist[0])
+                                }
+                            },
+                            modifier = modifier
+                                .fillMaxSize()
+//                                .padding(16.dp)
+                                .clip(RoundedCornerShape(percent = 30))
+                                .weight(0.15f)
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.delete),
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .fillMaxHeight()
+                                    .aspectRatio(1F)
+                                    .background(Color.DarkGray)
+                            )
                         }
                     }
                 }

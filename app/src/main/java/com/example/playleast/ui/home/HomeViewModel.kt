@@ -191,7 +191,11 @@ class HomeViewModel(private val savedStateHandle: SavedStateHandle, private val 
 //                        return@firstOrNull true
 //                    }
 //                }
+                println("song: $song")
                 playlistsRepository.getLeastPlaylists(savedStateHandle.get<String>("playlists")!!.removeSurrounding("[", "]").split(", ").filter {it != ""}).first {list ->
+                    println("list: $list")
+                    println("filter #1: ${list.filter {playlist -> song?.playlists!!.contains(playlist.title) }}")
+                    println("filter #2: ${list.filter {playlist -> song?.playlists!!.contains(playlist.title) }.filter { it.length == list.filter {playlist -> song?.playlists!!.contains(playlist.title) }[0].length}}")
                     list.filter {playlist -> song?.playlists!!.contains(playlist.title) }.filter { it.length == list.filter {playlist -> song?.playlists!!.contains(playlist.title) }[0].length}.random()
                     playlistsRepository.getItemStream(list.filter {playlist -> song?.playlists!!.contains(playlist.title) }.random().title).firstOrNull {playlist ->
                         if (playlist != null) {
@@ -212,14 +216,17 @@ class HomeViewModel(private val savedStateHandle: SavedStateHandle, private val 
                 it.forEach { song ->
                     songsRepository.updateItem(song.copy(length = 0))
                 }
-                println("resetting times: ${it.random().title}")
-                savedStateHandle["selected"] = it.random().title
                 return@first true
             }
             playlistsRepository.getAllItemsStream().first() { playlists ->
                 playlists.forEach {
                     playlistsRepository.updateItem(it.copy(length = 0))
                 }
+                return@first true
+            }
+            songsRepository.getPlaylistsStream(savedStateHandle.get<String>("playlists")!!.removeSurrounding("[" ,"]").split(", ").filter {it != ""}).first {
+                println("resetting times: ${it.random().title}")
+                savedStateHandle["selected"] = it.random().title
                 return@first true
             }
         } }
