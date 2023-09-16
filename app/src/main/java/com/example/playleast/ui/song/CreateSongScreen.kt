@@ -59,7 +59,7 @@ fun CreateSongScreen(
         )
         if (songUIState.url.isNotEmpty()) {
 
-            YoutubeScreen(videoId = songUIState.url.removePrefix("https://youtu.be/"))
+            YoutubeScreen(videoId = songUIState.url.removePrefix("https://youtu.be/").substringBefore("?"))
         }
         Playlists(songUIState = songUIState, playlists = playlists)
         Button(

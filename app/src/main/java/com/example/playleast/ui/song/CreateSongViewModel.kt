@@ -64,8 +64,13 @@ class CreateSongViewModel(private val songsRepository: SongsRepository, playlist
         val gfgPolicy = StrictMode.ThreadPolicy.Builder().permitAll().build()
         StrictMode.setThreadPolicy(gfgPolicy)
         val downloader = YoutubeDownloader()
-        val request = RequestVideoInfo(url.substring(url.lastIndexOf("/") + 1))
+        println(url)
+        println(url.removePrefix("https://youtu.be/").substringBefore("?"))
+//        val request = RequestVideoInfo(url.substring(url.lastIndexOf("/") + 1))
+        val request = RequestVideoInfo(url.removePrefix("https://youtu.be/").substringBefore("?"))
+        println(request)
         val response = downloader.getVideoInfo(request)
+        println(response)
         val video = response.data() ?: run {
             println("not a valid url")
             return false
