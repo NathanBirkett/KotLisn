@@ -53,6 +53,9 @@ class HomeViewModel(private val savedStateHandle: SavedStateHandle, private val 
     val progress: StateFlow<Float> =
         savedStateHandle.getStateFlow("progress", 0f)
 
+    val length: StateFlow<Float> =
+        savedStateHandle.getStateFlow("length", 0f)
+
     val playlists: StateFlow<String> =
         savedStateHandle.getStateFlow("playlists", "[]")
 
@@ -203,9 +206,12 @@ class HomeViewModel(private val savedStateHandle: SavedStateHandle, private val 
                     println("list: $list")
                     println("filter #1: ${list.filter {playlist -> song?.playlists!!.contains(playlist.title) }}")
                     println("filter #2: ${list.filter {playlist -> song?.playlists!!.contains(playlist.title) }.filter { it.length == list.filter {playlist -> song?.playlists!!.contains(playlist.title) }[0].length}}")
-                    list.filter {playlist -> song?.playlists!!.contains(playlist.title) }.filter { it.length == list.filter {playlist -> song?.playlists!!.contains(playlist.title) }[0].length}.random()
-                    playlistsRepository.getItemStream(list.filter {playlist -> song?.playlists!!.contains(playlist.title) }.random().title).firstOrNull {playlist ->
-                        if (playlist != null) {
+                    val rand = list.filter {playlist -> song?.playlists!!.contains(playlist.title) }.filter { it.length == list.filter {playlist -> song?.playlists!!.contains(playlist.title) }[0].length}.random()
+//                    playlistsRepository.getItemStream(list.filter {playlist -> song?.playlists!!.contains(playlist.title) }.random().title).firstOrNull {playlist ->
+                    println(rand)
+                    playlistsRepository.getItemStream(rand.title).firstOrNull {playlist ->
+
+                    if (playlist != null) {
                             playlistsRepository.updateItem(playlist.copy(length = playlist.length + mediaPlayer.duration))
                         }
                         return@firstOrNull true
@@ -254,6 +260,7 @@ class HomeViewModel(private val savedStateHandle: SavedStateHandle, private val 
         mediaPlayer.setOnPreparedListener {
             println("song after datasource: ${savedStateHandle.get<String>("selected")!!}")
             println("starting song")
+            savedStateHandle["length"] = mediaPlayer.duration
             mediaPlayer.start()
             thread {
                 while (true) {

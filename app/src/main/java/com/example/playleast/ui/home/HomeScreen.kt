@@ -66,6 +66,7 @@ import com.example.playleast.ui.playlist.CreatePlaylistScreen
 import com.example.playleast.ui.song.CreateSongScreen
 import com.example.playleast.ui.theme.PlayleastTheme
 import kotlinx.coroutines.launch
+import java.util.concurrent.TimeUnit
 import kotlin.math.exp
 
 enum class AppScreen() {
@@ -124,6 +125,7 @@ fun HomeScreen(
 //    val playlistTitle by viewModel.playlistTitle.collectAsState()
     val allPlaylists by viewModel.allPlaylists.collectAsState()
     val progress by viewModel.progress.collectAsState()
+    val length by viewModel.length.collectAsState()
 //    val paused by viewModel.paused.collectAsState()
     val coroutineScope = rememberCoroutineScope()
     val allSongs by viewModel.allSongs.collectAsState()
@@ -171,6 +173,7 @@ fun HomeScreen(
                 paused = paused,
                 pauseAtEnd = pauseAtEnd,
                 onProgressChange = {viewModel.onProgressChange(it)},
+                length = length,
                 modifier = Modifier.align(Alignment.BottomCenter)
             )
         }
@@ -209,6 +212,7 @@ fun Header(
         Text(
             text = playlists.toString(),
             fontSize = 36.sp,
+            lineHeight = 36.sp,
             modifier = modifier
                 .clickable {
                     expanded = !expanded
@@ -299,18 +303,24 @@ fun Playlist(
             .fillMaxWidth()
             .fillMaxHeight()
     ) {
-        items(if (isPlaylistAll) allSongs else playlist) {
-                song -> Text(
-            text = song.title,
-            fontSize = 36.sp,
-            lineHeight = 36.sp,
-            modifier = modifier
-                .clickable {
-                    println(currentSong)
-                    onSongSelected(song)
+        items( if (isPlaylistAll) allSongs else playlist) {
+                song -> Row() {
+            Text(
+                text = song.title,
+                fontSize = 36.sp,
+                lineHeight = 36.sp,
+                modifier = modifier
+                    .clickable {
+                        println(currentSong)
+                        onSongSelected(song)
+                    }
+                    .background(if (currentSong == song.title) Color(4278225151) else Color.Transparent)
+            )
+//            Text(
+//                text = "hi"
+//            )
                 }
-                .background(if (currentSong == song.title) Color(4278225151) else Color.Transparent)
-        )
+
         }
         item {
             Text(
@@ -361,6 +371,7 @@ fun Tools(
     paused: Boolean,
     pauseAtEnd: Boolean,
     onProgressChange: (Float) -> Unit,
+    length: Float,
     modifier: Modifier = Modifier
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -384,21 +395,36 @@ fun Tools(
             fontSize = 24.sp
         )
         if (!seeking && !paused) sliderPosition = progress
-        Slider(
-            value = sliderPosition,
-            onValueChange = {
-                if (!paused && !seeking) onPlayButton()
-                seeking = true
-                sliderPosition = it
-            },
-            valueRange = 0f..1f,
-            onValueChangeFinished = {
-                seeking = false
-                onProgressChange(sliderPosition)
-            },
-            colors = SliderDefaults.colors(thumbColor = Color(0, 136, 255), activeTrackColor = Color(255, 136, 0)),
-            modifier = Modifier.width(300.dp)
-        )
+        Row() {
+            Text (
+                text = String.format("%02d:%02d", TimeUnit.MILLISECONDS.toMinutes((progress * length).toLong()),
+                    TimeUnit.MILLISECONDS.toSeconds((progress * length).toLong()) % TimeUnit.MINUTES.toSeconds(1)),
+                fontSize = 18.sp
+            )
+            Slider(
+                value = sliderPosition,
+                onValueChange = {
+                    if (!paused && !seeking) onPlayButton()
+                    seeking = true
+                    sliderPosition = it
+                },
+                valueRange = 0f..1f,
+                onValueChangeFinished = {
+                    seeking = false
+                    onProgressChange(sliderPosition)
+                },
+                colors = SliderDefaults.colors(
+                    thumbColor = Color(0, 136, 255),
+                    activeTrackColor = Color(255, 136, 0)
+                ),
+                modifier = Modifier.width(250.dp)
+            )
+            Text (
+                text = String.format("%02d:%02d", TimeUnit.MILLISECONDS.toMinutes(length.toLong()),
+                    TimeUnit.MILLISECONDS.toSeconds(length.toLong()) % TimeUnit.MINUTES.toSeconds(1)),
+                fontSize = 18.sp
+            )
+        }
         Row {
             ToolButton(
                 painterResource(R.drawable.autostop),
