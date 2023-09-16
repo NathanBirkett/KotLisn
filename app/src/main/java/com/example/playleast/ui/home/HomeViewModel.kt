@@ -76,7 +76,8 @@ class HomeViewModel(private val savedStateHandle: SavedStateHandle, private val 
         runBlocking { launch {
             songsRepository.getPlaylistsStream(playlists).firstOrNull {
                 println("updating playlist: ${it.random().title}")
-                savedStateHandle["selected"] = it.random().title
+//                savedStateHandle["selected"] = it.random().title
+                nextRandom()
                 return@firstOrNull true
             }
         } }
@@ -239,7 +240,8 @@ class HomeViewModel(private val savedStateHandle: SavedStateHandle, private val 
             }
             songsRepository.getPlaylistsStream(savedStateHandle.get<String>("playlists")!!.removeSurrounding("[" ,"]").split(", ").filter {it != ""}).first {
                 println("resetting times: ${it.random().title}")
-                savedStateHandle["selected"] = it.random().title
+//                savedStateHandle["selected"] = it.random().title
+                nextRandom()
                 return@first true
             }
         } }
