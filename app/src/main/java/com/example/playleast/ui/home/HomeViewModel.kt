@@ -66,18 +66,19 @@ class HomeViewModel(private val savedStateHandle: SavedStateHandle, private val 
         savedStateHandle.getStateFlow("paused", false)
 
 
-    fun updatePlaylist(playlists: List<String>) {
+    fun updatePlaylist(playlists: List<String>, doNextRandom: Boolean = true) {
         savedStateHandle["playlists"] = playlists.toString()
         if (mediaPlayer.isPlaying || paused) {
             mediaPlayer.stop()
             if (paused) paused = false
         }
         savedStateHandle["id_selected"] = 0
+        println(doNextRandom)
         runBlocking { launch {
             songsRepository.getPlaylistsStream(playlists).firstOrNull {
                 println("updating playlist: ${it.random().title}")
 //                savedStateHandle["selected"] = it.random().title
-                nextRandom()
+                if (doNextRandom || savedStateHandle.get<String>("selected") == "") nextRandom()
                 return@firstOrNull true
             }
         } }
@@ -152,7 +153,7 @@ class HomeViewModel(private val savedStateHandle: SavedStateHandle, private val 
         )
 
     var allPlaylists: StateFlow<List<Playlist>> =
-        playlistsRepository.getAllItemsStream().distinctUntilChanged { old, new -> old.size == new.size } .onEach { updatePlaylist(it.map { it.title }); println("all playlists: $it") }
+        playlistsRepository.getAllItemsStream().distinctUntilChanged { old, new -> old.size == new.size } .onEach { ti -> updatePlaylist(ti.map { it.title }, false); println("all playlists: $ti") }
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(TIMEOUT_MILLIS),
