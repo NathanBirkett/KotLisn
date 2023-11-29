@@ -2,6 +2,7 @@ package com.example.playleast.data.song
 
 import androidx.sqlite.db.SimpleSQLiteQuery
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNot
 import kotlinx.coroutines.flow.first
@@ -24,22 +25,35 @@ class OfflineSongsRepository(private val songDao: SongDao): SongsRepository {
         return songDao.getPlaylist(SimpleSQLiteQuery(query = "SELECT * from song WHERE playlists LIKE '%$playlist%' ORDER BY title ASC"))
     }
 
-    override fun getPlaylistsStream(playlists: List<String>): Flow<List<Song>> {
-        if (playlists == emptyList<String>()) return getAllItemsStream()
+    override fun getPlaylistsStream(playlists: List<String>, antiplaylists: List<String>): Flow<List<Song>> {
+        if (playlists == emptyList<String>()) return songDao.getPlaylist(SimpleSQLiteQuery("SELECT * from song ORDER BY title ASC")).map {list -> list.filter { it.playlists.intersect(playlists).isNotEmpty() } }
         val builder = StringBuilder()
         builder.append("SELECT * from song WHERE ")
         var mutPlaylists = playlists.toMutableList()
         mutPlaylists.remove("")
         builder.append(mutPlaylists.joinToString(separator = " OR ") { "playlists LIKE '%$it%'" })
+        if (antiplaylists != emptyList<String>()) {
+            builder.append(" AND ")
+            builder.append(antiplaylists.joinToString(separator = " AND ") { "playlists NOT LIKE '%$it%'"})
+        }
         builder.append(" ORDER BY title ASC")
-//        println(builder)
+        println(builder)
         return songDao.getPlaylist(SimpleSQLiteQuery(builder.toString())).map {list -> list.filter { it.playlists.intersect(playlists).isNotEmpty() } }
     }
 
     override suspend fun nukeTable() = songDao.nukeTable()
 
-    override fun getLeastSongs(playlist: String): Flow<List<Song>> {
-//        println("SELECT * FROM song WHERE playlists LIKE '%$playlist%' AND length = (SELECT MIN(length) FROM song WHERE playlists LIKE '%$playlist%')")
-        return songDao.getLeastSongs(SimpleSQLiteQuery("SELECT * FROM song WHERE playlists LIKE '%$playlist%' AND length = (SELECT MIN(length) FROM song WHERE playlists LIKE '%$playlist%')"))
+    override fun getLeastSongs(playlist: String, antiplaylists: String): Flow<List<Song>> {
+        println(antiplaylists)
+        return if (antiplaylists == "[]" || antiplaylists.contains(playlist)) {
+            songDao.getLeastSongs(SimpleSQLiteQuery("SELECT * FROM song WHERE playlists LIKE '%$playlist%' AND length = (SELECT MIN(length) FROM song WHERE playlists LIKE '%$playlist%')"))
+        } else {
+            var anti = antiplaylists.removeSurrounding("[", "]").split(", ").filter {it != ""}
+            val builder = StringBuilder()
+            builder.append("FROM song WHERE playlists LIKE '%$playlist%' AND ")
+            builder.append(anti.joinToString(separator = " AND ") { "playlists NOT LIKE '%$it%'"})
+            println("SELECT * " + builder + " AND length = (SELECT MIN(length) " + builder + ")")
+            songDao.getLeastSongs(SimpleSQLiteQuery("SELECT * " + builder + " AND length = (SELECT MIN(length) " + builder + ")"))
+        }
     }
 }

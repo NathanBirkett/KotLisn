@@ -130,21 +130,25 @@ fun HomeScreen(
     val coroutineScope = rememberCoroutineScope()
     val allSongs by viewModel.allSongs.collectAsState()
     val playlists by viewModel.playlists.collectAsState()
+    val antiplaylists by viewModel.antiplaylists.collectAsState()
     val pauseAtEnd by viewModel.pauseAtEnd.collectAsState()
+    val held by viewModel.hold.collectAsState()
     val paused by viewModel.isPaused.collectAsState()
 
     var listPlaylists = playlists.removeSurrounding("[", "]").split(", ").filter {it != ""}
+    var listAntiplaylists = antiplaylists.removeSurrounding("[", "]").split(", ").filter {it != ""}
 
 
     Column {
         Header(
 //            modifier = Modifier.align(Alignment.TopCenter),
             onNewSong = onNewSong,
-            onValueChange = {viewModel.updatePlaylist(it); println(it)},
+            onValueChange = {playlist, anti -> viewModel.updatePlaylist(playlist, anti=anti); println(playlist) },
             onNewPlaylist = onNewPlaylist,
             allPlaylists = allPlaylists,
             isPlaylistAll = listPlaylists.size == allPlaylists.size || listPlaylists.isEmpty(),
-            playlists = listPlaylists.toMutableList()
+            playlists = listPlaylists.toMutableList(),
+            antiplaylists = listAntiplaylists.toMutableList()
         )
         Box {
             Playlist(
@@ -168,10 +172,12 @@ fun HomeScreen(
                 onNext = { viewModel.logSongDuration(); viewModel.nextRandom(); viewModel.playSong() },
                 onPlayButton = { viewModel.playSong() },
                 resetTimes = { viewModel.resetTimes() },
+                hold = { viewModel.hold() },
                 progress = progress,
 //                paused = viewModel.paused || !viewModel.mediaPlayer.isPlaying,
                 paused = paused,
                 pauseAtEnd = pauseAtEnd,
+                held = held,
                 onProgressChange = {viewModel.onProgressChange(it)},
                 length = length,
                 modifier = Modifier.align(Alignment.BottomCenter)
@@ -184,10 +190,11 @@ fun HomeScreen(
 @Composable
 fun Header(
     onNewSong: () -> Unit,
-    onValueChange: (List<String>) -> Unit,
+    onValueChange: (List<String>, Boolean) -> Unit,
     onNewPlaylist: () -> Unit,
     allPlaylists: List<Playlist>,
     playlists: MutableList<String>,
+    antiplaylists: MutableList<String>,
     isPlaylistAll: Boolean,
     modifier: Modifier = Modifier
 ) {
@@ -240,7 +247,7 @@ fun Header(
                                 modifier = Modifier.clickable {
                                     playlists.removeAll(playlists)
                                     playlists.add(playlist.title)
-                                    onValueChange(playlists)
+                                    onValueChange(playlists, false)
                                 }
                             )
                             Checkbox(
@@ -248,10 +255,29 @@ fun Header(
                                 onCheckedChange = {
                                     if (it) {
                                         playlists.add(playlist.title)
+                                        antiplaylists.remove(playlist.title)
                                     } else {
                                         playlists.remove(playlist.title)
                                     }
-                                    onValueChange(playlists)
+                                    println("262" + playlists)
+                                    println("263" + antiplaylists)
+                                    onValueChange(playlists, false)
+                                    onValueChange(antiplaylists, true)
+                                }
+                            )
+                            Checkbox(
+                                checked = antiplaylists.contains(playlist.title),
+                                onCheckedChange = {
+                                    if (it) {
+                                        antiplaylists.add(playlist.title)
+                                        playlists.remove(playlist.title)
+                                    } else {
+                                        antiplaylists.remove(playlist.title)
+                                    }
+                                    println("277" + playlists)
+                                    println("278" + antiplaylists)
+                                    onValueChange(antiplaylists, true)
+                                    onValueChange(playlists, false)
                                 }
                             )
                         }
@@ -268,7 +294,9 @@ fun Header(
                         } else {
                             playlists.removeIf { it != "" }
                         }
-                        onValueChange(playlists)
+                        antiplaylists.removeAll(antiplaylists)
+                        onValueChange(antiplaylists, true)
+                        onValueChange(playlists, false)
                     }) {
                         Text(text = if (playlists.isEmpty()) "all" else "none")
                     }
@@ -367,6 +395,8 @@ fun Tools(
     onNext: () -> Unit,
     onPlayButton: () -> Unit,
     resetTimes: () -> Unit,
+    hold: () -> Unit,
+    held: Boolean,
     progress: Float,
     paused: Boolean,
     pauseAtEnd: Boolean,
@@ -437,6 +467,11 @@ fun Tools(
             )
             ToolButton(painterResource(R.drawable.next), onClick = onNext)
             ToolButton(painterResource(R.drawable.reset), onClick = resetTimes)
+            ToolButton(painterResource(
+                R.drawable.hold),
+                onClick = hold,
+                background = if (held) Color(4294936576) else Color(4278225151)
+            )
         }
     }
 }
@@ -446,8 +481,8 @@ fun ToolButton(painter: Painter, onClick: () -> Unit, modifier: Modifier = Modif
     IconButton(
         onClick = onClick,
         modifier = modifier
-            .size(96.dp)
-            .padding(16.dp)
+            .size(75.dp)
+            .padding(4.dp)
             .clip(RoundedCornerShape(percent = 30))
     ) {
         Icon(

@@ -59,15 +59,26 @@ class HomeViewModel(private val savedStateHandle: SavedStateHandle, private val 
     val playlists: StateFlow<String> =
         savedStateHandle.getStateFlow("playlists", "[]")
 
+    val antiplaylists: StateFlow<String> =
+        savedStateHandle.getStateFlow("antiplaylists", "[]")
+
     val pauseAtEnd: StateFlow<Boolean> =
         savedStateHandle.getStateFlow("pauseAtEnd", false)
+
+    val hold: StateFlow<Boolean> =
+        savedStateHandle.getStateFlow("hold", false)
 
     val isPaused: StateFlow<Boolean> =
         savedStateHandle.getStateFlow("paused", false)
 
 
-    fun updatePlaylist(playlists: List<String>, doNextRandom: Boolean = true) {
-        savedStateHandle["playlists"] = playlists.toString()
+    fun updatePlaylist(playlists: List<String>, doNextRandom: Boolean = true, anti: Boolean = false) {
+        if (anti) {
+            savedStateHandle["antiplaylists"] = playlists.toString()
+            savedStateHandle["playlists"] = savedStateHandle.get<String>("playlists")!!.removeSurrounding("[", "]").split(", ").filter {it != ""}.subtract(playlists).toList().toString()
+        } else {
+            savedStateHandle["playlists"] = playlists.toString()
+        }
         if (mediaPlayer.isPlaying || paused) {
             mediaPlayer.stop()
             if (paused) paused = false
@@ -76,7 +87,7 @@ class HomeViewModel(private val savedStateHandle: SavedStateHandle, private val 
         println(doNextRandom)
         runBlocking { launch {
             songsRepository.getPlaylistsStream(playlists).firstOrNull {
-                println("updating playlist: ${it.random().title}")
+//                println("updating playlist: ${it.random().title}")
 //                savedStateHandle["selected"] = it.random().title
                 if (doNextRandom || savedStateHandle.get<String>("selected") == "") nextRandom()
                 return@firstOrNull true
@@ -93,13 +104,18 @@ class HomeViewModel(private val savedStateHandle: SavedStateHandle, private val 
         savedStateHandle["pauseAtEnd"] = savedStateHandle.get<Boolean>("pauseAtEnd") != true
     }
 
+    fun hold() {
+        savedStateHandle["hold"] = savedStateHandle.get<Boolean>("hold") != true
+    }
+
     fun nextRandom() {
         runBlocking { launch {
             var playlist: String
             playlistsRepository.getLeastPlaylists(savedStateHandle.get<String>("playlists")!!.removeSurrounding("[", "]").split(", ").filter {it != ""}).first {list ->
+                println("115" + list)
                 playlist = list.filter { it.length == list[0].length}.map {pllst -> pllst.title }.random()
                 println("playlist: $playlist")
-                songsRepository.getLeastSongs(playlist).first {songs ->
+                songsRepository.getLeastSongs(playlist, savedStateHandle["antiplaylists"]!!).first {songs -> //what happens in this call
                     println("songs: $songs")
                     val song = songs.random()
                     println("next random: ${song.title}")
@@ -162,10 +178,20 @@ class HomeViewModel(private val savedStateHandle: SavedStateHandle, private val 
 
     var appUIState: StateFlow<HomeUIState> =
         savedStateHandle.getStateFlow<String>("playlists", "").flatMapLatest { playlists ->
-            run { songsRepository.getPlaylistsStream(playlists.removeSurrounding("[" ,"]").split(", ").filter {it != ""}).first { println(it); return@first true } }
-            songsRepository.getPlaylistsStream(playlists.removeSurrounding("[" ,"]").split(", ").filter {it != ""}).map {list -> HomeUIState(playlist = list, playlists = playlists.removeSurrounding("[" ,"]").split(", ").filter {it != ""}.toMutableList()) }
+            savedStateHandle.getStateFlow<String>("antiplaylists", "").flatMapLatest { antiplaylists ->
+                run { songsRepository.getPlaylistsStream(playlists.removeSurrounding("[" ,"]").split(", ").filter {it != ""}).first { println("181" + it); return@first true } }
+                run { println("181.5" + antiplaylists) }
+                run { songsRepository.getPlaylistsStream(antiplaylists.removeSurrounding("[" ,"]").split(", ").filter {it != ""}).first { println("182" + it); return@first true } } //ok make this so it compares lists of songs instead of titles
+                run { songsRepository.getPlaylistsStream(playlists.removeSurrounding("[" ,"]").split(", ").filter {it != ""}).first {playlistss ->
+                    songsRepository.getPlaylistsStream(antiplaylists.removeSurrounding("[", "]").split(", ").filter {it != ""}).first {antiplaylistss ->
+                        println("186" + playlistss.subtract(antiplaylistss)); return@first true
+                    }
+                    return@first true
+                } }
+            songsRepository.getPlaylistsStream(playlists.removeSurrounding("[" ,"]").split(", ").filter {it != ""}, antiplaylists.removeSurrounding("[" ,"]").split(", ").filter {it != ""})
+                .map { list -> HomeUIState(playlist = list, playlists = playlists.removeSurrounding("[" ,"]").split(", ").filter {it != ""}.toMutableList()) }
 
-        }.stateIn(
+        }}.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(TIMEOUT_MILLIS),
             initialValue = HomeUIState()
@@ -186,14 +212,15 @@ class HomeViewModel(private val savedStateHandle: SavedStateHandle, private val 
     }
 
     fun logSongDuration() {
-        runBlocking { launch {
-            songsRepository.getItemStream(savedStateHandle["selected"]!!).firstOrNull { song ->
-                if (song != null) {
-                    songsRepository.updateItem(song.copy(length = song.length + mediaPlayer.duration))
+        if (savedStateHandle.get<Boolean>("hold") != true) {
+            runBlocking { launch {
+                songsRepository.getItemStream(savedStateHandle["selected"]!!).firstOrNull { song ->
+                    if (song != null) {
+                        songsRepository.updateItem(song.copy(length = song.length + mediaPlayer.duration))
+                    }
+                    return@firstOrNull true
                 }
-                return@firstOrNull true
-            }
-            songsRepository.getItemStream(savedStateHandle["selected"]!!).firstOrNull() { song ->
+                songsRepository.getItemStream(savedStateHandle["selected"]!!).firstOrNull() { song ->
 //                var least = song?.playlists?.get(0)
 //                song?.playlists?.forEach { playlist ->
 //                    playlistsRepository.getItemStream(playlist).firstOrNull() {
@@ -203,26 +230,27 @@ class HomeViewModel(private val savedStateHandle: SavedStateHandle, private val 
 //                        return@firstOrNull true
 //                    }
 //                }
-                println("song: $song")
-                playlistsRepository.getLeastPlaylists(savedStateHandle.get<String>("playlists")!!.removeSurrounding("[", "]").split(", ").filter {it != ""}).first {list ->
-                    println("list: $list")
-                    println("filter #1: ${list.filter {playlist -> song?.playlists!!.contains(playlist.title) }}")
-                    println("filter #2: ${list.filter {playlist -> song?.playlists!!.contains(playlist.title) }.filter { it.length == list.filter {playlist -> song?.playlists!!.contains(playlist.title) }[0].length}}")
-                    val rand = list.filter {playlist -> song?.playlists!!.contains(playlist.title) }.filter { it.length == list.filter {playlist -> song?.playlists!!.contains(playlist.title) }[0].length}.random()
+                    println("song: $song")
+                    playlistsRepository.getLeastPlaylists(savedStateHandle.get<String>("playlists")!!.removeSurrounding("[", "]").split(", ").filter {it != ""}).first {list ->
+                        println("list: $list")
+                        println("filter #1: ${list.filter {playlist -> song?.playlists!!.contains(playlist.title) }}")
+                        println("filter #2: ${list.filter {playlist -> song?.playlists!!.contains(playlist.title) }.filter { it.length == list.filter {playlist -> song?.playlists!!.contains(playlist.title) }[0].length}}")
+                        val rand = list.filter {playlist -> song?.playlists!!.contains(playlist.title) }.filter { it.length == list.filter {playlist -> song?.playlists!!.contains(playlist.title) }[0].length}.random()
 //                    playlistsRepository.getItemStream(list.filter {playlist -> song?.playlists!!.contains(playlist.title) }.random().title).firstOrNull {playlist ->
-                    println(rand)
-                    playlistsRepository.getItemStream(rand.title).firstOrNull {playlist ->
+                        println(rand)
+                        playlistsRepository.getItemStream(rand.title).firstOrNull {playlist ->
 
-                    if (playlist != null) {
-                            playlistsRepository.updateItem(playlist.copy(length = playlist.length + mediaPlayer.duration))
+                            if (playlist != null) {
+                                playlistsRepository.updateItem(playlist.copy(length = playlist.length + mediaPlayer.duration))
+                            }
+                            return@firstOrNull true
                         }
-                        return@firstOrNull true
+                        return@first true
                     }
-                    return@first true
+                    return@firstOrNull true
                 }
-                return@firstOrNull true
-            }
-        } }
+            } }
+        }
     }
 
     fun resetTimes() {

@@ -30,8 +30,8 @@ interface SongsRepository {
 
     fun getPlaylistStream(playlist: String): Flow<List<Song>>
 
-    fun getPlaylistsStream(playlists: List<String>): Flow<List<Song>>
+    fun getPlaylistsStream(playlists: List<String>, antiplaylists: List<String> = emptyList()): Flow<List<Song>>
     suspend fun nukeTable()
 
-    fun getLeastSongs(playlist: String): Flow<List<Song>>
+    fun getLeastSongs(playlist: String, antiplaylists: String = "[]"): Flow<List<Song>>
 }
