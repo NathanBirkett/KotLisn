@@ -198,11 +198,23 @@ class HomeViewModel(private val savedStateHandle: SavedStateHandle, private val 
         )
 
     suspend fun removePlaylist(playlistTitle: String) {
+        println("201" + playlistTitle)
         playlistsRepository.getItemStream(title = playlistTitle).collectLatest {
             println(it)
             if (it != null) {
                 playlistsRepository.deleteItem(it)
                 updatePlaylist(allPlaylists.value.map { playlist -> playlist.title }.filterNot { playlist -> playlist == playlistTitle })
+            }
+        }
+        println("getting plst" + playlistTitle)
+        songsRepository.getPlaylistStream(playlistTitle).collectLatest {songs ->
+            println("210" + songs)
+            songs.forEach {
+                println("212" + songs)
+                var playlist = it.playlists.toMutableList()
+                playlist.remove(playlistTitle)
+                println("215" + playlist)
+                songsRepository.updateItem(it.copy(playlists = playlist))
             }
         }
     }
