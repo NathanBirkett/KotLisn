@@ -232,6 +232,7 @@ class HomeViewModel(private val savedStateHandle: SavedStateHandle, private val 
                     }
                     return@firstOrNull true
                 }
+
                 songsRepository.getItemStream(savedStateHandle["selected"]!!).firstOrNull() { song ->
 //                var least = song?.playlists?.get(0)
 //                song?.playlists?.forEach { playlist ->
@@ -245,6 +246,15 @@ class HomeViewModel(private val savedStateHandle: SavedStateHandle, private val 
                     println("song: $song")
                     playlistsRepository.getLeastPlaylists(savedStateHandle.get<String>("playlists")!!.removeSurrounding("[", "]").split(", ").filter {it != ""}).first {list ->
                         println("list: $list")
+//                        list.filter { playlist -> song?.playlists!!.contains(playlist.title) }.forEach {
+//                            println("250" + it)
+//                            playlistsRepository.getItemStream(it.title).firstOrNull() {playlist ->
+//                                if (playlist != null) {
+//                                    playlistsRepository.updateItem(playlist.copy(length = playlist.length + mediaPlayer.duration))
+//                                }
+//                                return@firstOrNull true
+//                            }
+//                        }
                         println("filter #1: ${list.filter {playlist -> song?.playlists!!.contains(playlist.title) }}")
                         println("filter #2: ${list.filter {playlist -> song?.playlists!!.contains(playlist.title) }.filter { it.length == list.filter {playlist -> song?.playlists!!.contains(playlist.title) }[0].length}}")
                         val rand = list.filter {playlist -> song?.playlists!!.contains(playlist.title) }.filter { it.length == list.filter {playlist -> song?.playlists!!.contains(playlist.title) }[0].length}.random()
