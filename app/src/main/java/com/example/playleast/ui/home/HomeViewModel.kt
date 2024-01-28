@@ -332,7 +332,7 @@ class HomeViewModel(private val savedStateHandle: SavedStateHandle, private val 
             mediaPlayer.start()
             thread {
                 while (true) {
-                    Thread.sleep(100)
+                    Thread.sleep(200)
                     if (mediaPlayer.isPlaying || paused) {
                         savedStateHandle["paused"] = paused
                         savedStateHandle["progress"] =
