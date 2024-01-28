@@ -43,17 +43,16 @@ class OfflineSongsRepository(private val songDao: SongDao): SongsRepository {
 
     override suspend fun nukeTable() = songDao.nukeTable()
 
-    override fun getLeastSongs(playlist: String, antiplaylists: String): Flow<List<Song>> {
+    override fun getLeastSongs(playlists: String, antiplaylists: String): Flow<List<Song>> {
         println(antiplaylists)
-        return if (antiplaylists == "[]" || antiplaylists.contains(playlist)) {
-            songDao.getLeastSongs(SimpleSQLiteQuery("SELECT * FROM song WHERE playlists LIKE '%$playlist%' AND length = (SELECT MIN(length) FROM song WHERE playlists LIKE '%$playlist%')"))
-        } else {
-            var anti = antiplaylists.removeSurrounding("[", "]").split(", ").filter {it != ""}
-            val builder = StringBuilder()
-            builder.append("FROM song WHERE playlists LIKE '%$playlist%' AND ")
-            builder.append(anti.joinToString(separator = " AND ") { "playlists NOT LIKE '%$it%'"})
-            println("SELECT * " + builder + " AND length = (SELECT MIN(length) " + builder + ")")
-            songDao.getLeastSongs(SimpleSQLiteQuery("SELECT * " + builder + " AND length = (SELECT MIN(length) " + builder + ")"))
-        }
+        var playl = playlists.removeSurrounding("[", "]").split(", ").filter {it != ""}
+        var anti = antiplaylists.removeSurrounding("[", "]").split(", ").filter {it != ""}
+        val builder = StringBuilder()
+        builder.append("FROM song WHERE ")
+        builder.append("(" + playl.joinToString(separator = " OR ") {"playlists LIKE '%$it%'"} + ")")
+        if (anti.isNotEmpty()) builder.append(" AND ")
+        builder.append(anti.joinToString(separator = " AND ") {"playlists NOT LIKE '%$it%'"})
+        println("54: SELECT * $builder AND length = (SELECT MIN(length) $builder)")
+        return songDao.getLeastSongs(SimpleSQLiteQuery("SELECT * $builder AND length = (SELECT MIN(length) $builder)"))
     }
 }

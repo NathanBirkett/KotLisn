@@ -111,16 +111,31 @@ class HomeViewModel(private val savedStateHandle: SavedStateHandle, private val 
     fun nextRandom() {
         runBlocking { launch {
             var playlist: String
-            playlistsRepository.getLeastPlaylists(savedStateHandle.get<String>("playlists")!!.removeSurrounding("[", "]").split(", ").filter {it != ""}).first {list ->
-                println("115" + list)
-                playlist = list.filter { it.length == list[0].length}.map {pllst -> pllst.title }.random()
-                println("playlist: $playlist")
-                songsRepository.getLeastSongs(playlist, savedStateHandle["antiplaylists"]!!).first {songs -> //what happens in this call
-                    println("songs: $songs")
+//            playlistsRepository.getLeastPlaylists(savedStateHandle.get<String>("playlists")!!.removeSurrounding("[", "]").split(", ").filter {it != ""}).first {list ->
+//                println("115" + list)
+//                playlist = list.filter { it.length == list[0].length}.map {pllst -> pllst.title }.random()
+//                println("playlist: $playlist")
+//                songsRepository.getLeastSongs(playlist, savedStateHandle["antiplaylists"]!!).first {songs -> //what happens in this call
+//                    println("songs: $songs")
+//                    val song = songs.random()
+//                    println("next random: ${song.title}")
+//                    savedStateHandle["selected"] = song.title
+//                    println("selected title: ${savedStateHandle.get<String>("selected")}")
+//                    appUIState.value.playlist.forEach { playlistSong ->
+//                        if (playlistSong.title == song.title) savedStateHandle["id_selected"] = appUIState.value.playlist.indexOf(playlistSong)
+//                    }
+//                    return@first true
+//                }
+//                return@first true
+//            }
+            playlistsRepository.getLeastPlaylists(savedStateHandle.get<String>("playlists")!!.removeSurrounding("[", "]").split(", ").filter {it != ""}). first {list ->
+                var playlistsStr = list.map{it.title}.toString()
+                println("133: $playlistsStr")
+                songsRepository.getLeastSongs(playlistsStr, savedStateHandle["antiplaylists"]!!).first {songs ->
+                    println("136: $songs")
                     val song = songs.random()
-                    println("next random: ${song.title}")
+                    println("138: $song")
                     savedStateHandle["selected"] = song.title
-                    println("selected title: ${savedStateHandle.get<String>("selected")}")
                     appUIState.value.playlist.forEach { playlistSong ->
                         if (playlistSong.title == song.title) savedStateHandle["id_selected"] = appUIState.value.playlist.indexOf(playlistSong)
                     }
