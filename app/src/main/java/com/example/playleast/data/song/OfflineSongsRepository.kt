@@ -31,7 +31,7 @@ class OfflineSongsRepository(private val songDao: SongDao): SongsRepository {
         builder.append("SELECT * from song WHERE ")
         var mutPlaylists = playlists.toMutableList()
         mutPlaylists.remove("")
-        builder.append(mutPlaylists.joinToString(separator = " OR ") { "playlists LIKE '%$it%'" })
+        builder.append("(" + mutPlaylists.joinToString(separator = " OR ") { "playlists LIKE '%$it%'" } + ")")
         if (antiplaylists != emptyList<String>()) {
             builder.append(" AND ")
             builder.append(antiplaylists.joinToString(separator = " AND ") { "playlists NOT LIKE '%$it%'"})

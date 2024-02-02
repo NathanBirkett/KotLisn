@@ -246,8 +246,10 @@ fun Header(
                                 fontSize = 24.sp,
                                 modifier = Modifier.clickable {
                                     playlists.removeAll(playlists)
+                                    antiplaylists.removeAll(antiplaylists)
                                     playlists.add(playlist.title)
                                     onValueChange(playlists, false)
+                                    onValueChange(antiplaylists, true)
                                 }
                             )
                             Checkbox(
