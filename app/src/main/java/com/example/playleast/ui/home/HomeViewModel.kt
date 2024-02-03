@@ -1,8 +1,16 @@
 package com.example.playleast.ui.home
 
 import android.app.Application
+import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothHeadset
+import android.bluetooth.BluetoothProfile
+import android.content.Intent
 import android.media.MediaPlayer
+import android.media.session.MediaSession
 import android.net.Uri
+import android.os.Bundle
+import android.os.ResultReceiver
+import android.view.KeyEvent
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -27,7 +35,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlin.concurrent.thread
 
-class HomeViewModel(private val savedStateHandle: SavedStateHandle, private val songsRepository: SongsRepository, private val playlistsRepository: PlaylistsRepository, private val application: Application): ViewModel() {
+public class HomeViewModel(private val savedStateHandle: SavedStateHandle, private val songsRepository: SongsRepository, private val playlistsRepository: PlaylistsRepository, private val application: Application): ViewModel() {
 
     fun selectSong(song: Song) {
         println("select song: ${song.title}")
@@ -324,6 +332,53 @@ class HomeViewModel(private val savedStateHandle: SavedStateHandle, private val 
     }
 
     init {
+//        var bluetoothHeadset: BluetoothHeadset? = null
+//        val bluetoothAdapter: BluetoothAdapter? = BluetoothAdapter.getDefaultAdapter()
+//        val profileListener = object : BluetoothProfile.ServiceListener {
+//            override fun onServiceConnected(profile: Int, proxy: BluetoothProfile) {
+//                if (profile == BluetoothProfile.HEADSET) {
+//                    bluetoothHeadset = proxy as BluetoothHeadset
+//                }
+//            }
+//
+//            override fun onServiceDisconnected(profile: Int) {
+//                if (profile == BluetoothProfile.HEADSET) {
+//                    bluetoothHeadset = null
+//                }
+//            }
+//        }
+//
+//        val mediaSessionCallback: MediaSession.Callback = object : MediaSession.Callback() {
+//            override fun onCommand(command: String, args: Bundle?, cb: ResultReceiver?) {
+//                println("command: $command")
+//                super.onCommand(command, args, cb)
+//            }
+//
+////            override fun onMediaButtonEvent(mediaButtonIntent: Intent): Boolean {
+////
+////                val mediaButtonAction = mediaButtonIntent.action
+////
+////                if (Intent.ACTION_MEDIA_BUTTON == mediaButtonAction) {
+////                    val event = mediaButtonAction.getParcelableExtra<KeyEvent>(Intent.EXTRA_KEY_EVENT)
+////                    if (event != null) {
+////                        val action = event.action
+////                        if (action == KeyEvent.ACTION_DOWN) {
+////                        }
+////                    }
+////                }
+////                return super.onMediaButtonEvent(mediaButtonIntent)
+////            }
+//        }
+//
+//        // Establish connection to the proxy.
+//        bluetoothAdapter?.getProfileProxy(application.applicationContext, profileListener, BluetoothProfile.HEADSET)
+//
+//// ... call functions on bluetoothHeadset
+//
+//
+//// Close proxy connection after use.
+//        bluetoothAdapter?.closeProfileProxy(BluetoothProfile.HEADSET, bluetoothHeadset)
+
 //        savedStateHandle["id_selected"] = 0
         mediaPlayer.setOnPreparedListener {
             println("song after datasource: ${savedStateHandle.get<String>("selected")!!}")
