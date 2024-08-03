@@ -34,4 +34,6 @@ interface SongsRepository {
     suspend fun nukeTable()
 
     fun getLeastSongs(playlist: String, antiplaylists: String = "[]"): Flow<List<Song>>
+
+    fun getLeastSongsInstances(playlist: String, antiplaylists: String = "[]"): Flow<List<Song>>
 }
