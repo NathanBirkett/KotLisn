@@ -79,13 +79,6 @@ public class HomeViewModel(private val savedStateHandle: SavedStateHandle, priva
     val isPaused: StateFlow<Boolean> =
         savedStateHandle.getStateFlow("paused", false)
 
-    val randomizationMode: StateFlow<String> =
-        savedStateHandle.getStateFlow("randomizationMode", "songLength")
-
-
-    fun setRandomizationMode(mode: String) {
-        savedStateHandle["randomizationMode"] = mode
-    }
 
     fun updatePlaylist(playlists: List<String>, doNextRandom: Boolean = true, anti: Boolean = false) {
         if (anti) {
@@ -125,58 +118,38 @@ public class HomeViewModel(private val savedStateHandle: SavedStateHandle, priva
 
     fun nextRandom() {
         runBlocking { launch {
-            println("randomization mode: ${randomizationMode.value}")
-            if (randomizationMode.value == "playlistLength") {
-                var playlist: String
-                playlistsRepository.getLeastPlaylists(savedStateHandle.get<String>("playlists")!!.removeSurrounding("[", "]").split(", ").filter {it != ""}).first {list ->
-                    println("115" + list)
-                    playlist = list.filter { it.length == list[0].length}.map {pllst -> pllst.title }.random()
-                    println("playlist: $playlist")
-                    songsRepository.getLeastSongs(playlist, savedStateHandle["antiplaylists"]!!).first {songs -> //what happens in this call
-                        println("songs: $songs")
-                        val song = songs.random()
-                        println("next random: ${song.title}")
-                        savedStateHandle["selected"] = song.title
-                        println("selected title: ${savedStateHandle.get<String>("selected")}")
-                        appUIState.value.playlist.forEach { playlistSong ->
-                            if (playlistSong.title == song.title) savedStateHandle["id_selected"] = appUIState.value.playlist.indexOf(playlistSong)
-                        }
-                        return@first true
+            var playlist: String
+//            playlistsRepository.getLeastPlaylists(savedStateHandle.get<String>("playlists")!!.removeSurrounding("[", "]").split(", ").filter {it != ""}).first {list ->
+//                println("115" + list)
+//                playlist = list.filter { it.length == list[0].length}.map {pllst -> pllst.title }.random()
+//                println("playlist: $playlist")
+//                songsRepository.getLeastSongs(playlist, savedStateHandle["antiplaylists"]!!).first {songs -> //what happens in this call
+//                    println("songs: $songs")
+//                    val song = songs.random()
+//                    println("next random: ${song.title}")
+//                    savedStateHandle["selected"] = song.title
+//                    println("selected title: ${savedStateHandle.get<String>("selected")}")
+//                    appUIState.value.playlist.forEach { playlistSong ->
+//                        if (playlistSong.title == song.title) savedStateHandle["id_selected"] = appUIState.value.playlist.indexOf(playlistSong)
+//                    }
+//                    return@first true
+//                }
+//                return@first true
+//            }
+            playlistsRepository.getLeastPlaylists(savedStateHandle.get<String>("playlists")!!.removeSurrounding("[", "]").split(", ").filter {it != ""}). first {list ->
+                var playlistsStr = list.map{it.title}.toString()
+                println("133: $playlistsStr")
+                songsRepository.getLeastSongs(playlistsStr, savedStateHandle["antiplaylists"]!!).first {songs ->
+                    println("136: $songs")
+                    val song = songs.random()
+                    println("138: $song")
+                    savedStateHandle["selected"] = song.title
+                    appUIState.value.playlist.forEach { playlistSong ->
+                        if (playlistSong.title == song.title) savedStateHandle["id_selected"] = appUIState.value.playlist.indexOf(playlistSong)
                     }
                     return@first true
                 }
-            } else if (randomizationMode.value == "songLength") {
-                playlistsRepository.getPlaylists(savedStateHandle.get<String>("playlists")!!.removeSurrounding("[", "]").split(", ").filter {it != ""}). first {list ->
-                    var playlistsStr = list.map{it.title}.toString()
-                    println("133: $playlistsStr")
-                    songsRepository.getLeastSongs(playlistsStr, savedStateHandle["antiplaylists"]!!).firstOrNull {songs ->
-                        println("136: $songs")
-                        val song = songs.random()
-                        println("138: $song")
-                        savedStateHandle["selected"] = song.title
-                        appUIState.value.playlist.forEach { playlistSong ->
-                            if (playlistSong.title == song.title) savedStateHandle["id_selected"] = appUIState.value.playlist.indexOf(playlistSong)
-                        }
-                        return@firstOrNull true
-                    }
-                    return@first true
-                }
-            } else if (randomizationMode.value == "songInstance") {
-                playlistsRepository.getPlaylists(savedStateHandle.get<String>("playlists")!!.removeSurrounding("[", "]").split(", ").filter {it != ""}). first {list ->
-                    var playlistsStr = list.map{it.title}.toString()
-                    println("133: $playlistsStr")
-                    songsRepository.getLeastSongsInstances(playlistsStr, savedStateHandle["antiplaylists"]!!).firstOrNull {songs ->
-                        println("136: $songs")
-                        val song = songs.random()
-                        println("138: $song")
-                        savedStateHandle["selected"] = song.title
-                        appUIState.value.playlist.forEach { playlistSong ->
-                            if (playlistSong.title == song.title) savedStateHandle["id_selected"] = appUIState.value.playlist.indexOf(playlistSong)
-                        }
-                        return@firstOrNull true
-                    }
-                    return@first true
-                }
+                return@first true
             }
             mediaPlayer.reset()
         } }
@@ -278,7 +251,7 @@ public class HomeViewModel(private val savedStateHandle: SavedStateHandle, priva
             runBlocking { launch {
                 songsRepository.getItemStream(savedStateHandle["selected"]!!).firstOrNull { song ->
                     if (song != null) {
-                        songsRepository.updateItem(song.copy(length = song.length + mediaPlayer.duration, count = song.count + 1))
+                        songsRepository.updateItem(song.copy(length = song.length + mediaPlayer.duration))
                     }
                     return@firstOrNull true
                 }
@@ -294,7 +267,7 @@ public class HomeViewModel(private val savedStateHandle: SavedStateHandle, priva
 //                    }
 //                }
                     println("song: $song")
-                    playlistsRepository.getPlaylists(savedStateHandle.get<String>("playlists")!!.removeSurrounding("[", "]").split(", ").filter {it != ""}).first {list ->
+                    playlistsRepository.getLeastPlaylists(savedStateHandle.get<String>("playlists")!!.removeSurrounding("[", "]").split(", ").filter {it != ""}).first {list ->
                         println("list: $list")
 //                        list.filter { playlist -> song?.playlists!!.contains(playlist.title) }.forEach {
 //                            println("250" + it)

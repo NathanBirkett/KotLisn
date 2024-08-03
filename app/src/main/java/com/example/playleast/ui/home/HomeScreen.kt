@@ -63,7 +63,6 @@ import com.example.playleast.data.song.Song
 import com.example.playleast.ui.AppViewModelProvider
 import com.example.playleast.ui.edit.EditPlaylistScreen
 import com.example.playleast.ui.playlist.CreatePlaylistScreen
-import com.example.playleast.ui.settings.SettingsScreen
 import com.example.playleast.ui.song.CreateSongScreen
 import com.example.playleast.ui.theme.PlayleastTheme
 import kotlinx.coroutines.launch
@@ -74,8 +73,7 @@ enum class AppScreen() {
     Home,
     SongCreation,
     PlaylistCreation,
-    PlaylistEdit,
-    Settings
+    PlaylistEdit
 }
 
 @Composable
@@ -92,7 +90,6 @@ fun PlayleastApp(
                 onNewSong = {navController.navigate(AppScreen.SongCreation.name)},
                 onNewPlaylist = {navController.navigate(AppScreen.PlaylistCreation.name)},
                 onEditSongs = {navController.navigate(AppScreen.PlaylistEdit.name)},
-                onSettings = {navController.navigate(AppScreen.Settings.name)},
                 viewModel = homeViewModel
             )
         }
@@ -112,12 +109,6 @@ fun PlayleastApp(
                 navigateBack = {navController.navigate(AppScreen.Home.name)}
             )
         }
-        composable(route = AppScreen.Settings.name) {
-            SettingsScreen(
-                homeViewModel = homeViewModel,
-                navigateBack = {navController.navigate(AppScreen.Home.name)}
-            )
-        }
     }
 }
 
@@ -126,7 +117,6 @@ fun HomeScreen(
     onNewSong: () -> Unit,
     onNewPlaylist: () -> Unit,
     onEditSongs: () -> Unit,
-    onSettings: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
@@ -182,7 +172,6 @@ fun HomeScreen(
                 onNext = { viewModel.logSongDuration(); viewModel.nextRandom(); viewModel.playSong() },
                 onPlayButton = { viewModel.playSong() },
                 resetTimes = { viewModel.resetTimes() },
-                settings = onSettings,
                 hold = { viewModel.hold() },
                 progress = progress,
 //                paused = viewModel.paused || !viewModel.mediaPlayer.isPlaying,
@@ -408,7 +397,6 @@ fun Tools(
     onNext: () -> Unit,
     onPlayButton: () -> Unit,
     resetTimes: () -> Unit,
-    settings: () -> Unit,
     hold: () -> Unit,
     held: Boolean,
     progress: Float,
@@ -480,12 +468,12 @@ fun Tools(
                 onClick = onPlayButton
             )
             ToolButton(painterResource(R.drawable.next), onClick = onNext)
+            ToolButton(painterResource(R.drawable.reset), onClick = resetTimes)
             ToolButton(painterResource(
                 R.drawable.hold),
                 onClick = hold,
                 background = if (held) Color(4294936576) else Color(4278225151)
             )
-            ToolButton(painterResource(R.drawable.settings), onClick = settings)
         }
     }
 }
