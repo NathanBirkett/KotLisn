@@ -32,4 +32,6 @@ interface PlaylistsRepository {
     suspend fun nukeTable()
 
     fun getLeastPlaylists(playlists: List<String>): Flow<List<Playlist>>
+
+    fun getPlaylists(playlists: List<String>): Flow<List<Playlist>>
 }

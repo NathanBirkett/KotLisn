@@ -9,9 +9,10 @@ import androidx.room.TypeConverters
 data class Song(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
-    val title: String,
-    val length: Int,
-    val url: String,
+    val title: String = "nullTitle",
+    val length: Int = 0,
+    val count: Int = 0,
+    val url: String = "nullUrl",
 //    @TypeConverters(StringTypeConverters::class)
-    val playlists: List<String>
+    val playlists: List<String> = emptyList()
 )
