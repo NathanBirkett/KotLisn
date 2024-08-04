@@ -400,10 +400,10 @@ public class HomeViewModel(private val savedStateHandle: SavedStateHandle, priva
                 return@first true
             }
         } }
-        if (mediaPlayer.isPlaying || paused) {
-            mediaPlayer.stop()
-            if (paused) paused = false
-        }
+//        if (mediaPlayer.isPlaying || paused) {
+//            mediaPlayer.stop()
+//            if (paused) paused = false
+//        }
 //        runBlocking { launch {
 //            songsRepository.getPlaylistsStream(savedStateHandle.get<String>("playlists")!!.removeSurrounding("[" ,"]").split(", ").filter {it != ""}).firstOrNull {
 //                savedStateHandle["selected"] = it.random().title
