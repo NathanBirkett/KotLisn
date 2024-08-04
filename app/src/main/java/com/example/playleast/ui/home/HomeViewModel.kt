@@ -493,6 +493,8 @@ public class HomeViewModel(private val savedStateHandle: SavedStateHandle, priva
             savedStateHandle["length"] = mediaPlayer.duration.toFloat()
             setSetting("length", savedStateHandle.get<Float>("length")!!)
             onProgressChange(savedStateHandle.get<Float>("progress")!!)
+            savedStateHandle["pauseAtEnd"] = false
+            setSetting("pauseAtEnd", savedStateHandle.get<Boolean>("pauseAtEnd")!!)
             if (!paused) {
                 mediaPlayer.start()
                 thread {
@@ -503,9 +505,11 @@ public class HomeViewModel(private val savedStateHandle: SavedStateHandle, priva
                                 savedStateHandle["paused"] = paused
                                 setSetting("paused", savedStateHandle.get<Boolean>("paused")!!)
                             }
-                            savedStateHandle["progress"] =
-                                (mediaPlayer.currentPosition.toDouble() / mediaPlayer.duration.toDouble()).toFloat()
-                            setSetting("progress", savedStateHandle.get<Float>("progress")!!)
+                            if (savedStateHandle.get<Float>("progress") != (mediaPlayer.currentPosition.toDouble() / mediaPlayer.duration.toDouble()).toFloat()) {
+                                savedStateHandle["progress"] =
+                                    (mediaPlayer.currentPosition.toDouble() / mediaPlayer.duration.toDouble()).toFloat()
+                                setSetting("progress", savedStateHandle.get<Float>("progress")!!)
+                            }
                         } else {
                             savedStateHandle["paused"] = true
                             setSetting("paused", savedStateHandle.get<Boolean>("paused")!!)
@@ -525,8 +529,6 @@ public class HomeViewModel(private val savedStateHandle: SavedStateHandle, priva
             if (savedStateHandle.get<Boolean>("pauseAtEnd") == false) {
                 playSong()
             }
-            savedStateHandle["pauseAtEnd"] = false
-            setSetting("pauseAtEnd", savedStateHandle.get<Boolean>("pauseAtEnd")!!)
         }
         mediaPlayer.setOnSeekCompleteListener {
 //            if (savedStateHandle.get<Boolean>("paused") == true) playSong()
