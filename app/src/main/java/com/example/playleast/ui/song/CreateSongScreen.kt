@@ -73,6 +73,13 @@ fun CreateSongScreen(
         ) {
             Text("Add Song")
         }
+        Button(
+            onClick = {coroutineScope.launch {
+                viewModel.downloadAll()
+            }}
+        ) {
+            Text("Do the thing")
+        }
     }
 }
 

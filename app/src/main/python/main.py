@@ -8,6 +8,6 @@ def match_target_amplitude(sound, target_dBFS):
 
 def normalize(path):
     sound = AudioSegment.from_wav(path, "wav")
-    normalized_sound = match_target_amplitude(sound, -20)
+    normalized_sound = match_target_amplitude(sound, -30)
     # increased_sound = normalized_sound + 10
     normalized_sound.export(path, format="wav")

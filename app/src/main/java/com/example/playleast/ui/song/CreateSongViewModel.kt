@@ -20,11 +20,15 @@ import com.github.kiulian.downloader.downloader.request.RequestVideoInfo
 import com.github.kiulian.downloader.model.Extension
 import com.github.kiulian.downloader.model.videos.formats.Format
 import com.github.kiulian.downloader.model.videos.formats.VideoFormat
+import kotlinx.coroutines.Dispatchers
 //import com.yausername.youtubedl_android.YoutubeDL.getInstance
 //import com.yausername.youtubedl_android.YoutubeDLRequest
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 
 
@@ -57,9 +61,7 @@ class CreateSongViewModel(private val songsRepository: SongsRepository, playlist
                 started = SharingStarted.WhileSubscribed(TIMEOUT_MILLIS),
                 initialValue = listOf<Playlist>()
             )
-    fun download(): Boolean {
-        val url = songUIState.url
-        val title = songUIState.title
+    fun download(url: String = songUIState.url, title: String = songUIState.title): Boolean {
         val directory =  getApplication<Application>().applicationContext.filesDir.path + "/data/Playleast"
         val gfgPolicy = StrictMode.ThreadPolicy.Builder().permitAll().build()
         StrictMode.setThreadPolicy(gfgPolicy)
@@ -84,6 +86,21 @@ class CreateSongViewModel(private val songsRepository: SongsRepository, playlist
         println(newResponse.status())
         normalize(newRequest.outputFile.absolutePath)
         return true
+    }
+
+    suspend fun downloadAll() {
+        viewModelScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                songsRepository.getAllItemsStream().first {
+                    it.forEach { song ->
+                        download(song.url, song.title)
+                    }
+                    return@first true
+
+                }
+            }
+        }
+
     }
 
     fun normalize(m4aPath: String) {

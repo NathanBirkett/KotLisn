@@ -329,7 +329,7 @@ public class HomeViewModel(private val savedStateHandle: SavedStateHandle, priva
         runBlocking { launch {
             songsRepository.getAllItemsStream().first {
                 it.forEach { song ->
-                    songsRepository.updateItem(song.copy(length = 0))
+                    songsRepository.updateItem(song.copy(length = 0, count = 0))
                 }
                 return@first true
             }
