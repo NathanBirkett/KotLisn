@@ -2,6 +2,7 @@ package com.example.playleast
 
 import android.app.Application
 import android.content.ContentValues.TAG
+import android.content.Context
 import android.util.Log
 import com.example.playleast.data.AppContainer
 import com.example.playleast.data.AppDataContainer
@@ -26,4 +27,5 @@ class PlayleastApplication: Application() {
 //            Log.e(TAG, "failed to initialize youtubedl-android", e)
 //        }
     }
+
 }

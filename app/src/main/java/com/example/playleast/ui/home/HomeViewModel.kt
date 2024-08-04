@@ -4,6 +4,7 @@ import android.app.Application
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothHeadset
 import android.bluetooth.BluetoothProfile
+import android.content.Context
 import android.content.Intent
 import android.media.MediaPlayer
 import android.media.session.MediaSession
@@ -11,6 +12,8 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.ResultReceiver
 import android.view.KeyEvent
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.preferencesDataStore
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -33,9 +36,15 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
+import kotlinx.coroutines.flow.Flow
 import kotlin.concurrent.thread
 
 public class HomeViewModel(private val savedStateHandle: SavedStateHandle, private val songsRepository: SongsRepository, private val playlistsRepository: PlaylistsRepository, private val application: Application): ViewModel() {
+
+    private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
     fun selectSong(song: Song) {
         println("select song: ${song.title}")
@@ -79,12 +88,29 @@ public class HomeViewModel(private val savedStateHandle: SavedStateHandle, priva
     val isPaused: StateFlow<Boolean> =
         savedStateHandle.getStateFlow("paused", false)
 
-    val randomizationMode: StateFlow<String> =
-        savedStateHandle.getStateFlow("randomizationMode", "songLength")
 
+    suspend fun setRandomizationMode(mode: String) {
+        val RANDOMIZATION_MODE = stringPreferencesKey("randomizationMode")
+        application.applicationContext.dataStore.edit { settings ->
+            settings[RANDOMIZATION_MODE] = mode
+        }
+    }
 
-    fun setRandomizationMode(mode: String) {
-        savedStateHandle["randomizationMode"] = mode
+    fun getRandomizationMode(): Flow<String?> {
+        val RANDOMIZATION_MODE = stringPreferencesKey("randomizationMode")
+        return application.applicationContext.dataStore.data.map { preferences -> preferences[RANDOMIZATION_MODE]}
+    }
+
+    suspend fun setSetting(str: String, value: String) {
+        val SETTING = stringPreferencesKey(str)
+        application.applicationContext.dataStore.edit { settings ->
+            settings[SETTING] = value
+        }
+    }
+
+    fun getSetting(str: String): Flow<String?> {
+        val SETTING = stringPreferencesKey(str)
+        return application.applicationContext.dataStore.data.map { preferences -> preferences[SETTING]}
     }
 
     fun updatePlaylist(playlists: List<String>, doNextRandom: Boolean = true, anti: Boolean = false) {
@@ -125,8 +151,9 @@ public class HomeViewModel(private val savedStateHandle: SavedStateHandle, priva
 
     fun nextRandom() {
         runBlocking { launch {
-            println("randomization mode: ${randomizationMode.value}")
-            if (randomizationMode.value == "playlistLength") {
+            val randomizationMode = getRandomizationMode().first()
+            println("randomization mode: ${randomizationMode}")
+            if (randomizationMode == "playlistLength") {
                 var playlist: String
                 playlistsRepository.getLeastPlaylists(savedStateHandle.get<String>("playlists")!!.removeSurrounding("[", "]").split(", ").filter {it != ""}).first {list ->
                     println("115" + list)
@@ -145,7 +172,7 @@ public class HomeViewModel(private val savedStateHandle: SavedStateHandle, priva
                     }
                     return@first true
                 }
-            } else if (randomizationMode.value == "songLength") {
+            } else if (randomizationMode == "songLength") {
                 playlistsRepository.getPlaylists(savedStateHandle.get<String>("playlists")!!.removeSurrounding("[", "]").split(", ").filter {it != ""}). first {list ->
                     var playlistsStr = list.map{it.title}.toString()
                     println("133: $playlistsStr")
@@ -161,7 +188,7 @@ public class HomeViewModel(private val savedStateHandle: SavedStateHandle, priva
                     }
                     return@first true
                 }
-            } else if (randomizationMode.value == "songInstance") {
+            } else if (randomizationMode == "songInstance") {
                 playlistsRepository.getPlaylists(savedStateHandle.get<String>("playlists")!!.removeSurrounding("[", "]").split(", ").filter {it != ""}). first {list ->
                     var playlistsStr = list.map{it.title}.toString()
                     println("133: $playlistsStr")
@@ -359,6 +386,10 @@ public class HomeViewModel(private val savedStateHandle: SavedStateHandle, priva
     }
 
     init {
+        runBlocking {launch {
+//            getRandomizationMode().first() ?: setRandomizationMode ("songInstance")
+            setRandomizationMode("songInstance")
+        }}
 //        var bluetoothHeadset: BluetoothHeadset? = null
 //        val bluetoothAdapter: BluetoothAdapter? = BluetoothAdapter.getDefaultAdapter()
 //        val profileListener = object : BluetoothProfile.ServiceListener {
