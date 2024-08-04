@@ -490,27 +490,27 @@ public class HomeViewModel(private val savedStateHandle: SavedStateHandle, priva
         mediaPlayer.setOnPreparedListener {
             println("song after datasource: ${savedStateHandle.get<String>("selected")!!}")
             println("starting song ${mediaPlayer.duration}")
-            if (mediaPlayer.duration != 0) {
-                savedStateHandle["length"] = mediaPlayer.duration.toFloat()
-                setSetting("length", savedStateHandle.get<Float>("length")!!)
-            }
-            runBlocking { launch { println("length: ${getSetting("length").first()}") } }
+            savedStateHandle["length"] = mediaPlayer.duration.toFloat()
+            setSetting("length", savedStateHandle.get<Float>("length")!!)
             onProgressChange(savedStateHandle.get<Float>("progress")!!)
-
-            mediaPlayer.start()
-            thread {
-                while (true) {
-                    Thread.sleep(200)
-                    if (mediaPlayer.isPlaying || paused) {
-                        savedStateHandle["paused"] = paused
-                        setSetting("paused", savedStateHandle.get<Boolean>("paused")!!)
-                        savedStateHandle["progress"] =
-                            (mediaPlayer.currentPosition.toDouble() / mediaPlayer.duration.toDouble()).toFloat()
-                        setSetting("progress", savedStateHandle.get<Float>("progress")!!)
-                    } else {
-                        savedStateHandle["paused"] = true
-                        setSetting("paused", savedStateHandle.get<Boolean>("paused")!!)
-                        return@thread
+            if (!paused) {
+                mediaPlayer.start()
+                thread {
+                    while (true) {
+                        Thread.sleep(200)
+                        if (mediaPlayer.isPlaying || paused) {
+                            if (savedStateHandle.get<Boolean>("paused") != paused) {
+                                savedStateHandle["paused"] = paused
+                                setSetting("paused", savedStateHandle.get<Boolean>("paused")!!)
+                            }
+                            savedStateHandle["progress"] =
+                                (mediaPlayer.currentPosition.toDouble() / mediaPlayer.duration.toDouble()).toFloat()
+                            setSetting("progress", savedStateHandle.get<Float>("progress")!!)
+                        } else {
+                            savedStateHandle["paused"] = true
+                            setSetting("paused", savedStateHandle.get<Boolean>("paused")!!)
+                            return@thread
+                        }
                     }
                 }
             }
@@ -519,6 +519,9 @@ public class HomeViewModel(private val savedStateHandle: SavedStateHandle, priva
             println("calling next random")
             logSongDuration()
             nextRandom()
+            savedStateHandle["progress"] = 0f
+            setSetting("progress", savedStateHandle.get<Float>("progress")!!)
+            onProgressChange(savedStateHandle.get<Float>("progress")!!)
             if (savedStateHandle.get<Boolean>("pauseAtEnd") == false) {
                 playSong()
             }
@@ -526,7 +529,7 @@ public class HomeViewModel(private val savedStateHandle: SavedStateHandle, priva
             setSetting("pauseAtEnd", savedStateHandle.get<Boolean>("pauseAtEnd")!!)
         }
         mediaPlayer.setOnSeekCompleteListener {
-            playSong()
+//            if (savedStateHandle.get<Boolean>("paused") == true) playSong()
         }
     }
 

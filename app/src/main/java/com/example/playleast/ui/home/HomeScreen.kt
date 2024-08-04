@@ -419,7 +419,7 @@ fun Tools(
     modifier: Modifier = Modifier
 ) {
     val interactionSource = remember { MutableInteractionSource() }
-    var sliderPosition by remember { mutableStateOf(0f) }
+    var sliderPosition by remember { mutableStateOf(progress) }
     var seeking by remember { mutableStateOf(false) }
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -438,7 +438,7 @@ fun Tools(
             text = currentSong,
             fontSize = 24.sp
         )
-        if (!seeking && !paused) sliderPosition = progress
+        if (!seeking) sliderPosition = progress
         Row() {
             Text (
                 text = String.format("%02d:%02d", TimeUnit.MILLISECONDS.toMinutes((progress * length).toLong()),
@@ -448,7 +448,7 @@ fun Tools(
             Slider(
                 value = sliderPosition,
                 onValueChange = {
-                    if (!paused && !seeking) onPlayButton()
+//                    if (!paused && !seeking) onPlayButton()
                     seeking = true
                     sliderPosition = it
                 },
