@@ -13,15 +13,20 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.playleast.PlayleastApplication
+import com.example.playleast.ui.AppViewModelProvider
 import com.example.playleast.ui.home.HomeViewModel
+import com.example.playleast.ui.song.CreateSongViewModel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlin.coroutines.coroutineContext
 
 @Composable
 fun SettingsScreen(
+    settingsViewModel: SettingsViewModel = viewModel(factory = AppViewModelProvider.Factory),
     homeViewModel: HomeViewModel,
+    createSongViewModel: CreateSongViewModel = viewModel(factory = AppViewModelProvider.Factory),
     navigateBack: () -> Unit
     ) {
     val randomizationMode by homeViewModel.getRandomizationMode().collectAsState(initial = "songInstance")
@@ -52,6 +57,19 @@ fun SettingsScreen(
                             } else if (randomizationMode == "playlistLength") {
                                 homeViewModel.setRandomizationMode("songInstance")
                             }
+                        } }
+                    }
+            )
+        }
+        item {
+            Text(
+                text = "redownload all songs",
+                fontSize = 32.sp,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        runBlocking { launch {
+                            createSongViewModel.downloadAll()
                         } }
                     }
             )

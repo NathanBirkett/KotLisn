@@ -93,14 +93,16 @@ class CreateSongViewModel(private val songsRepository: SongsRepository, playlist
             val result = withContext(Dispatchers.IO) {
                 songsRepository.getAllItemsStream().first {
                     it.forEach { song ->
+                        val file = File(getApplication<Application>().applicationContext.filesDir.path + "/data/Playleast/" + song.title.replace(" ", "_") + ".mp3")
+                        if (file.exists()) file.delete()
                         download(song.url, song.title)
                     }
                     return@first true
 
                 }
             }
+            println("done downloading all files")
         }
-
     }
 
     fun normalize(m4aPath: String) {

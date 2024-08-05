@@ -14,6 +14,8 @@ data class Song(
     val length: Int = 0,
     @ColumnInfo(name = "count", defaultValue = 0.toString())
     val count: Int = 0,
+    @ColumnInfo(name = "duration", defaultValue = 0.toString())
+    val duration: Int = 0,
     val url: String = "nullUrl",
 //    @TypeConverters(StringTypeConverters::class)
     val playlists: List<String> = emptyList()

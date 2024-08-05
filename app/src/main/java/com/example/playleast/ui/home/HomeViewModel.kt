@@ -56,6 +56,10 @@ public class HomeViewModel(private val savedStateHandle: SavedStateHandle, priva
         savedStateHandle["selected"] = song.title
         savedStateHandle["id_selected"] = appUIState.value.playlist.indexOf(song)
         setSetting("selected", song.title)
+        prepared = false
+        savedStateHandle["progress"] = 0f
+        setSetting("progress", savedStateHandle.get<Float>("progress")!!)
+        onProgressChange(savedStateHandle.get<Float>("progress")!!)
         mediaPlayer.reset()
 //        savedStateHandle["paused"] = false
         paused = false
@@ -322,9 +326,14 @@ public class HomeViewModel(private val savedStateHandle: SavedStateHandle, priva
             }
         }
     }
-
+    var prepared = false
     fun onProgressChange(value: Float) {
-        mediaPlayer.seekTo((mediaPlayer.duration * value).toInt())
+        if (prepared) {
+            mediaPlayer.seekTo((mediaPlayer.duration * value).toInt())
+        } else {
+            savedStateHandle["progress"] = value
+            setSetting("progress", savedStateHandle.get<Float>("progress")!!)
+        }
     }
 
     fun logSongDuration() {
@@ -489,6 +498,7 @@ public class HomeViewModel(private val savedStateHandle: SavedStateHandle, priva
 //        savedStateHandle["id_selected"] = 0
         mediaPlayer.setOnPreparedListener {
             println("song after datasource: ${savedStateHandle.get<String>("selected")!!}")
+            prepared = true
             println("starting song ${mediaPlayer.duration}")
             savedStateHandle["length"] = mediaPlayer.duration.toFloat()
             setSetting("length", savedStateHandle.get<Float>("length")!!)
@@ -520,6 +530,7 @@ public class HomeViewModel(private val savedStateHandle: SavedStateHandle, priva
             }
         }
         mediaPlayer.setOnCompletionListener {
+            prepared = false
             println("calling next random")
             logSongDuration()
             nextRandom()

@@ -10,6 +10,7 @@ import com.example.playleast.ui.edit.EditPlaylistScreen
 import com.example.playleast.ui.edit.EditPlaylistViewModel
 import com.example.playleast.ui.home.HomeViewModel
 import com.example.playleast.ui.playlist.CreatePlaylistViewModel
+import com.example.playleast.ui.settings.SettingsViewModel
 import com.example.playleast.ui.song.CreateSongViewModel
 
 object AppViewModelProvider {
@@ -25,6 +26,9 @@ object AppViewModelProvider {
         }
         initializer {
             EditPlaylistViewModel(playleastApplication().container.songsRepository, playleastApplication())
+        }
+        initializer {
+            SettingsViewModel(playleastApplication().container.songsRepository, playleastApplication())
         }
     }
 }
