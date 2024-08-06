@@ -64,7 +64,7 @@ class CreateSongViewModel(private val songsRepository: SongsRepository, playlist
             )
     fun download(url: String = songUIState.url, title: String = songUIState.title): Unit {
         var toReturn = false
-        thread {
+//        thread {
             val file = File(getApplication<Application>().applicationContext.filesDir.path + "/data/Playleast/" + title.replace(" ", "_") + ".mp3")
             if (file.exists()) file.delete()
             val directory =  getApplication<Application>().applicationContext.filesDir.path + "/data/Playleast"
@@ -77,8 +77,9 @@ class CreateSongViewModel(private val songsRepository: SongsRepository, playlist
             val request = RequestVideoInfo(url.removePrefix("https://youtu.be/").substringBefore("?"))
             println(request)
             val response = downloader.getVideoInfo(request)
-            println(response)
+            println(response.status())
             val video = response.data()
+            println("song thats causing error: ${title}")
             val audioFormat = video.audioFormats()
             val newRequest = RequestVideoFileDownload(audioFormat[0])
                 .saveTo(File(directory))
@@ -88,8 +89,7 @@ class CreateSongViewModel(private val songsRepository: SongsRepository, playlist
             println(newResponse.status())
             normalize(newRequest.outputFile.absolutePath)
             toReturn = true
-            return@thread
-        }
+//        }
     }
 
     suspend fun downloadAll() {
@@ -97,6 +97,7 @@ class CreateSongViewModel(private val songsRepository: SongsRepository, playlist
             val result = withContext(Dispatchers.IO) {
                 songsRepository.getAllItemsStream().first {
                     it.forEach { song ->
+                        println(song.title)
                         val file = File(getApplication<Application>().applicationContext.filesDir.path + "/data/Playleast/" + song.title.replace(" ", "_") + ".mp3")
                         if (file.exists()) file.delete()
                         download(song.url, song.title)
