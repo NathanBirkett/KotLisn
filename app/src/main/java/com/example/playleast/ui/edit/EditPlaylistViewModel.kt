@@ -26,6 +26,8 @@ class EditPlaylistViewModel(private val songsRepository: SongsRepository, privat
 
     fun renameSong(song: Song) {
         runBlocking { launch {
+            val file = File(application.applicationContext.filesDir.path + "/data/Playleast/" + song.title.replace(" ", "_") + ".mp3")
+            file.renameTo(File(application.applicationContext.filesDir.path + "/data/Playleast/" + uiState.newTitle.replace(" ", "_") + ".mp3"))
             songsRepository.updateItem(song.copy(title = uiState.newTitle))
         } }
     }
@@ -52,6 +54,12 @@ class EditPlaylistViewModel(private val songsRepository: SongsRepository, privat
         file.delete()
     }
 
+    fun changeLink(song: Song) {
+        runBlocking { launch {
+            songsRepository.updateItem(song.copy(url = uiState.newTitle))
+        } }
+    }
+
     fun remove(song: Song, playlistTitle: String) {runBlocking { launch {
         songsRepository.getItemStream(song.title).first {
             if (it != null) {
@@ -69,6 +77,7 @@ class EditPlaylistViewModel(private val songsRepository: SongsRepository, privat
 
 data class EditUIState(
     val newTitle: String = "",
+    val editingSong: String = "",
     val actionEnabled: Boolean = false
 )
 

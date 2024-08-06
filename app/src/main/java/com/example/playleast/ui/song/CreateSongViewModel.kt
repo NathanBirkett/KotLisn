@@ -30,6 +30,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import kotlin.concurrent.thread
 
 
 class CreateSongViewModel(private val songsRepository: SongsRepository, playlistsRepository: PlaylistsRepository, application: Application) : AndroidViewModel(application) {
@@ -61,31 +62,34 @@ class CreateSongViewModel(private val songsRepository: SongsRepository, playlist
                 started = SharingStarted.WhileSubscribed(TIMEOUT_MILLIS),
                 initialValue = listOf<Playlist>()
             )
-    fun download(url: String = songUIState.url, title: String = songUIState.title): Boolean {
-        val directory =  getApplication<Application>().applicationContext.filesDir.path + "/data/Playleast"
-        val gfgPolicy = StrictMode.ThreadPolicy.Builder().permitAll().build()
-        StrictMode.setThreadPolicy(gfgPolicy)
-        val downloader = YoutubeDownloader()
-        println(url)
-        println(url.removePrefix("https://youtu.be/").substringBefore("?"))
+    fun download(url: String = songUIState.url, title: String = songUIState.title): Unit {
+        var toReturn = false
+        thread {
+            val file = File(getApplication<Application>().applicationContext.filesDir.path + "/data/Playleast/" + title.replace(" ", "_") + ".mp3")
+            if (file.exists()) file.delete()
+            val directory =  getApplication<Application>().applicationContext.filesDir.path + "/data/Playleast"
+            val gfgPolicy = StrictMode.ThreadPolicy.Builder().permitAll().build()
+            StrictMode.setThreadPolicy(gfgPolicy)
+            val downloader = YoutubeDownloader()
+            println(url)
+            println(url.removePrefix("https://youtu.be/").substringBefore("?"))
 //        val request = RequestVideoInfo(url.substring(url.lastIndexOf("/") + 1))
-        val request = RequestVideoInfo(url.removePrefix("https://youtu.be/").substringBefore("?"))
-        println(request)
-        val response = downloader.getVideoInfo(request)
-        println(response)
-        val video = response.data() ?: run {
-            println("not a valid url")
-            return false
+            val request = RequestVideoInfo(url.removePrefix("https://youtu.be/").substringBefore("?"))
+            println(request)
+            val response = downloader.getVideoInfo(request)
+            println(response)
+            val video = response.data()
+            val audioFormat = video.audioFormats()
+            val newRequest = RequestVideoFileDownload(audioFormat[0])
+                .saveTo(File(directory))
+                .renameTo(title.replace(" ", "_"))
+                .overwriteIfExists(true)
+            val newResponse = downloader.downloadVideoFile(newRequest)
+            println(newResponse.status())
+            normalize(newRequest.outputFile.absolutePath)
+            toReturn = true
+            return@thread
         }
-        val audioFormat = video.audioFormats()
-        val newRequest = RequestVideoFileDownload(audioFormat[0])
-            .saveTo(File(directory))
-            .renameTo(title.replace(" ", "_"))
-            .overwriteIfExists(true)
-        val newResponse = downloader.downloadVideoFile(newRequest)
-        println(newResponse.status())
-        normalize(newRequest.outputFile.absolutePath)
-        return true
     }
 
     suspend fun downloadAll() {

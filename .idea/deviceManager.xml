@@ -8,7 +8,7 @@
             <list>
               <CategoryState>
                 <option name="attribute" value="Type" />
-                <option name="value" value="Physical" />
+                <option name="value" value="Virtual" />
               </CategoryState>
             </list>
           </option>

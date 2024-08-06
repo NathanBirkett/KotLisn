@@ -64,10 +64,9 @@ fun CreateSongScreen(
         Playlists(songUIState = songUIState, playlists = playlists)
         Button(
             onClick = {coroutineScope.launch {
-                if (viewModel.download()) {
-                    viewModel.saveSong()
-                    navigateBack()
-                }
+                viewModel.download()
+                viewModel.saveSong()
+                navigateBack()
             }},
             enabled = songUIState.actionEnabled
         ) {

@@ -41,12 +41,17 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.playleast.R
 import com.example.playleast.ui.AppViewModelProvider
 import com.example.playleast.ui.home.HomeViewModel
+import com.example.playleast.ui.song.CreateSongViewModel
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 @OptIn(ExperimentalUnitApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun EditPlaylistScreen(
     homeViewModel: HomeViewModel = viewModel(factory = AppViewModelProvider.Factory),
     viewModel: EditPlaylistViewModel = viewModel(factory = AppViewModelProvider.Factory),
+    createSongViewModel: CreateSongViewModel = viewModel(factory = AppViewModelProvider.Factory),
     navigateBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -75,12 +80,12 @@ fun EditPlaylistScreen(
                 modifier = modifier
                     .fillMaxWidth()
             ) {
-                items(if (isAll) homeViewModel.allSongs.value else appUIState.playlist) { song ->
+                items(if (isAll) allSongs else appUIState.playlist) { song ->
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        if (renamePopup) {
+                        if (renamePopup && song.title == viewModel.uiState.editingSong) {
                             TextField(
                                 value = viewModel.uiState.newTitle,
                                 onValueChange = {
@@ -93,6 +98,7 @@ fun EditPlaylistScreen(
                                 label = { Text("Title") },
                                 textStyle = TextStyle(fontSize = TextUnit(32f, TextUnitType.Sp)),
                                 modifier = Modifier
+                                    .weight(0.7f)
                             )
                         } else {
                             Text(
@@ -106,6 +112,13 @@ fun EditPlaylistScreen(
                             onClick = {
                                 if (renamePopup) {
                                     viewModel.renameSong(song)
+                                } else {
+                                    viewModel.updateUIState(
+                                        viewModel.uiState.copy(
+                                            editingSong = song.title,
+                                            newTitle = song.title
+                                        )
+                                    )
                                 }
                                 renamePopup = !renamePopup
                             },
@@ -116,6 +129,35 @@ fun EditPlaylistScreen(
                         ) {
                             Icon(
                                 painter = painterResource(R.drawable.edit),
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .fillMaxHeight()
+                                    .aspectRatio(1F)
+                                    .background(Color.DarkGray)
+                            )
+                        }
+                        IconButton(
+                            onClick = {
+                                if (renamePopup) {
+                                    createSongViewModel.download(viewModel.uiState.newTitle, song.title)
+                                    viewModel.changeLink(song)
+                                } else {
+                                    viewModel.updateUIState(
+                                        viewModel.uiState.copy(
+                                            editingSong = song.title,
+                                            newTitle = ""
+                                        )
+                                    )
+                                }
+                                renamePopup = !renamePopup
+                            },
+                            modifier = modifier
+                                .fillMaxSize()
+                                .clip(RoundedCornerShape(percent = 30))
+                                .weight(0.15f)
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.link),
                                 contentDescription = null,
                                 modifier = Modifier
                                     .fillMaxHeight()
