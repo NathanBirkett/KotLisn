@@ -51,11 +51,11 @@ public class HomeViewModel(private val savedStateHandle: SavedStateHandle, priva
 
     private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
-    fun selectSong(song: Song) {
-        println("select song: ${song.title}")
-        savedStateHandle["selected"] = song.title
-        savedStateHandle["id_selected"] = appUIState.value.playlist.indexOf(song)
-        setSetting("selected", song.title)
+    fun selectSong(song: String) {
+        println("select song: ${song}")
+        savedStateHandle["selected"] = song
+//        savedStateHandle["id_selected"] = appUIState.value.playlist.indexOf(song)
+        setSetting("selected", song)
         prepared = false
         savedStateHandle["progress"] = 0f
         setSetting("progress", savedStateHandle.get<Float>("progress")!!)
@@ -69,6 +69,9 @@ public class HomeViewModel(private val savedStateHandle: SavedStateHandle, priva
 
     val playlistTitle: StateFlow<String> =
         savedStateHandle.getStateFlow("playlist", "")
+
+    val queue: StateFlow<String> =
+        savedStateHandle.getStateFlow("queue", "[]")
 
     val progress: StateFlow<Float> =
         savedStateHandle.getStateFlow("progress", 0f)
@@ -131,9 +134,20 @@ public class HomeViewModel(private val savedStateHandle: SavedStateHandle, priva
 
     }
 
-    fun getSetting(str: String): Flow<String?> {
+    fun getSetting(str: String): Flow<Any?> {
         val SETTING = stringPreferencesKey(str)
         return application.applicationContext.dataStore.data.map { preferences -> preferences[SETTING]}
+    }
+
+    fun updateQueue(song: String) {
+        var queueList = savedStateHandle.get<String>("queue")!!.removeSurrounding("[", "]").split(", ").filter {it != ""}
+        if (queueList.contains(song)) {
+            savedStateHandle["queue"] = queueList.minus(song).toString()
+        } else {
+            savedStateHandle["queue"] = queueList.plus(song).toString()
+        }
+        setSetting("queue", savedStateHandle.get<String>("queue")!!)
+        println("queue150: ${savedStateHandle.get<String>("queue")}")
     }
 
     fun updatePlaylist(playlists: List<String>, doNextRandom: Boolean = true, anti: Boolean = false) {
@@ -151,9 +165,21 @@ public class HomeViewModel(private val savedStateHandle: SavedStateHandle, priva
             if (paused) paused = false
         }
         savedStateHandle["id_selected"] = 0
-        println(doNextRandom)
+        println("154: " + doNextRandom)
         runBlocking { launch {
-            songsRepository.getPlaylistsStream(playlists).firstOrNull {
+            savedStateHandle.getStateFlow<String>("playlists", "").first { playlists ->
+                savedStateHandle.getStateFlow<String>("antiplaylists", "").first { antiplaylists ->
+                    var songs = songsRepository.getPlaylistsStream(
+                        playlists.removeSurrounding("[", "]").split(", ").filter { it != "" },
+                        antiplaylists.removeSurrounding("[", "]").split(", ").filter { it != "" }).first()
+                    println("161 $songs")
+                    savedStateHandle["queue"] = songs.map { it.title }.toString()
+                    setSetting("queue", savedStateHandle.get<String>("queue")!!)
+                    return@first true
+                }
+                return@first true
+            }
+            songsRepository.getPlaylistsStream(playlists).firstOrNull { playlists ->
 //                println("updating playlist: ${it.random().title}")
 //                savedStateHandle["selected"] = it.random().title
                 if (doNextRandom ) nextRandom()
@@ -175,13 +201,32 @@ public class HomeViewModel(private val savedStateHandle: SavedStateHandle, priva
     fun hold() {
         savedStateHandle["hold"] = savedStateHandle.get<Boolean>("hold") != true
         setSetting("hold", savedStateHandle.get<Boolean>("hold")!!)
+        if (hold.value) {
+            savedStateHandle["queue"] = "[]"
+            setSetting("queue", savedStateHandle.get<String>("queue")!!)
+        } else {
+            runBlocking { launch {
+                savedStateHandle.getStateFlow<String>("playlists", "").first { playlists ->
+                    savedStateHandle.getStateFlow<String>("antiplaylists", "").first { antiplaylists ->
+                        var songs = songsRepository.getPlaylistsStream(
+                            playlists.removeSurrounding("[", "]").split(", ").filter { it != "" },
+                            antiplaylists.removeSurrounding("[", "]").split(", ").filter { it != "" }).first()
+                        println("161 $songs")
+                        savedStateHandle["queue"] = songs.map { it.title }.toString()
+                        setSetting("queue", savedStateHandle.get<String>("queue")!!)
+                        return@first true
+                    }
+                    return@first true
+                }
+            } }
+        }
     }
 
     fun nextRandom() {
         runBlocking { launch {
             val randomizationMode = getRandomizationMode().first()
             println("randomization mode: ${randomizationMode}")
-            if (randomizationMode == "playlistLength") {
+            if (randomizationMode == "playlistLength" && !hold.value) {
                 var playlist: String
                 playlistsRepository.getLeastPlaylists(savedStateHandle.get<String>("playlists")!!.removeSurrounding("[", "]").split(", ").filter {it != ""}).first {list ->
                     println("115" + list)
@@ -201,7 +246,7 @@ public class HomeViewModel(private val savedStateHandle: SavedStateHandle, priva
                     }
                     return@first true
                 }
-            } else if (randomizationMode == "songLength") {
+            } else if (randomizationMode == "songLength" && !hold.value) {
                 playlistsRepository.getPlaylists(savedStateHandle.get<String>("playlists")!!.removeSurrounding("[", "]").split(", ").filter {it != ""}). first {list ->
                     var playlistsStr = list.map{it.title}.toString()
                     println("133: $playlistsStr")
@@ -218,7 +263,7 @@ public class HomeViewModel(private val savedStateHandle: SavedStateHandle, priva
                     }
                     return@first true
                 }
-            } else if (randomizationMode == "songInstance") {
+            } else if (randomizationMode == "songInstance" && !hold.value) {
                 playlistsRepository.getPlaylists(savedStateHandle.get<String>("playlists")!!.removeSurrounding("[", "]").split(", ").filter {it != ""}). first {list ->
                     var playlistsStr = list.map{it.title}.toString()
                     println("133: $playlistsStr")
@@ -235,9 +280,10 @@ public class HomeViewModel(private val savedStateHandle: SavedStateHandle, priva
                     }
                     return@first true
                 }
-            } else if (randomizationMode == "displayOrder") {
-                val index = appUIState.value.playlist.map { it.title }.indexOf(savedStateHandle["selected"])
-                savedStateHandle["selected"] = appUIState.value.playlist[(index + 1) % appUIState.value.playlist.size].title
+            } else if (randomizationMode == "displayOrder" || hold.value) {
+                val queueList = savedStateHandle.get<String>("queue")!!.removeSurrounding("[", "]").split(", ").filter {it != ""}
+                val index = queueList.indexOf(savedStateHandle["selected"])
+                savedStateHandle["selected"] = queueList[(index + 1) % queueList.size]
                 setSetting("selected", savedStateHandle.get<String>("selected")!!)
             }
             mediaPlayer.reset()
@@ -460,7 +506,7 @@ public class HomeViewModel(private val savedStateHandle: SavedStateHandle, priva
             syncSettings("pauseAtEnd", false)
             syncSettings("hold", false)
             syncSettings("paused", false)
-            syncSettings("queue", appUIState.value.playlist)
+            syncSettings("queue", "[]")
         }}
 
 

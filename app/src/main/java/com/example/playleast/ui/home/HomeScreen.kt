@@ -136,6 +136,7 @@ fun HomeScreen(
     val allPlaylists by viewModel.allPlaylists.collectAsState()
     val progress by viewModel.progress.collectAsState()
     val length by viewModel.length.collectAsState()
+    val hold by viewModel.hold.collectAsState()
 //    val paused by viewModel.paused.collectAsState()
     val coroutineScope = rememberCoroutineScope()
     val allSongs by viewModel.allSongs.collectAsState()
@@ -144,26 +145,40 @@ fun HomeScreen(
     val pauseAtEnd by viewModel.pauseAtEnd.collectAsState()
     val held by viewModel.hold.collectAsState()
     val paused by viewModel.isPaused.collectAsState()
+    val queue by viewModel.queue.collectAsState()
 
     var listPlaylists = playlists.removeSurrounding("[", "]").split(", ").filter {it != ""}
     var listAntiplaylists = antiplaylists.removeSurrounding("[", "]").split(", ").filter {it != ""}
+    var queueList = queue.removeSurrounding("[", "]").split(", ").filter {it != ""}
+    println("queuelist: $queueList")
 
 
     Column {
-        Header(
+        if (hold) {
+            Queue(
 //            modifier = Modifier.align(Alignment.TopCenter),
-            onNewSong = onNewSong,
-            onValueChange = {playlist, anti -> viewModel.updatePlaylist(playlist, anti=anti); println(playlist) },
-            onNewPlaylist = onNewPlaylist,
-            allPlaylists = allPlaylists,
-            isPlaylistAll = listPlaylists.size == allPlaylists.size || listPlaylists.isEmpty(),
-            playlists = listPlaylists.toMutableList(),
-            antiplaylists = listAntiplaylists.toMutableList()
-        )
+                allSongs = allSongs,
+                onUpdateQueue = {viewModel.updateQueue(it)},
+                queue = queueList.toMutableList()
+            )
+        } else {
+            Header(
+//            modifier = Modifier.align(Alignment.TopCenter),
+                onNewSong = onNewSong,
+                onValueChange = {playlist, anti -> viewModel.updatePlaylist(playlist, anti=anti); println(playlist) },
+                onNewPlaylist = onNewPlaylist,
+                allPlaylists = allPlaylists,
+                isPlaylistAll = listPlaylists.size == allPlaylists.size || listPlaylists.isEmpty(),
+                playlists = listPlaylists.toMutableList(),
+                antiplaylists = listAntiplaylists.toMutableList()
+            )
+        }
+
+
         Box {
             Playlist(
                 currentSong = selectedSong,
-                playlist = appUIState.playlist,
+                playlist = queueList,
                 allSongs = allSongs,
                 onSongSelected = { viewModel.selectSong(it) },
                 isPlaylistAll = listPlaylists.size == allPlaylists.size || listPlaylists.isEmpty(),
@@ -193,6 +208,54 @@ fun HomeScreen(
                 length = length,
                 modifier = Modifier.align(Alignment.BottomCenter)
             )
+        }
+    }
+}
+
+@Composable
+fun Queue(
+    onUpdateQueue: (String) -> Unit,
+    queue: MutableList<String>,
+    allSongs: List<Song>,
+    modifier: Modifier = Modifier
+) {
+    var expanded by remember{ mutableStateOf(false)}
+    val interactionSource = remember { MutableInteractionSource() }
+    Box() {
+        Column(
+            modifier = Modifier
+                .clip(RoundedCornerShape(0, 0, 15, 15))
+                .background(Color.Black)
+                .padding(12.dp)
+                .fillMaxWidth()
+        ) {
+            Text(
+                text = "Queue",
+                fontSize = 36.sp,
+                lineHeight = 36.sp,
+                modifier = modifier
+                    .clickable {
+                        expanded = !expanded
+//                    popup.captureFocus()
+                    }
+                    .background(Color.Black)
+            )
+            if (expanded) {
+                allSongs.forEach { song ->
+                    Row {
+                        Text(
+                            text = song.title,
+                            fontSize = 24.sp
+                        )
+                        Checkbox(
+                            checked = queue.contains(song.title),
+                            onCheckedChange = {
+                                onUpdateQueue(song.title)
+                            }
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -329,8 +392,8 @@ fun Header(
 @Composable
 fun Playlist(
     currentSong: String,
-    playlist: List<Song>,
-    onSongSelected: (Song) -> Unit,
+    playlist: List<String>,
+    onSongSelected: (String) -> Unit,
     isPlaylistAll: Boolean,
     isOnePlaylist: Boolean,
     allSongs: List<Song>,
@@ -344,10 +407,10 @@ fun Playlist(
             .fillMaxWidth()
             .fillMaxHeight()
     ) {
-        items( if (isPlaylistAll) allSongs else playlist) {
+        items(playlist) {
                 song -> Row() {
             Text(
-                text = song.title,
+                text = song,
                 fontSize = 36.sp,
                 lineHeight = 36.sp,
                 modifier = modifier
@@ -355,7 +418,7 @@ fun Playlist(
                         println(currentSong)
                         onSongSelected(song)
                     }
-                    .background(if (currentSong == song.title) Color(4278225151) else Color.Transparent)
+                    .background(if (currentSong == song) Color(4278225151) else Color.Transparent)
             )
 //            Text(
 //                text = "hi"
