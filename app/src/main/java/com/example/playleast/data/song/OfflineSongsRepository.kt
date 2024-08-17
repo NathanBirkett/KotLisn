@@ -73,4 +73,19 @@ class OfflineSongsRepository(private val songDao: SongDao): SongsRepository {
         return songDao.getLeastSongs(SimpleSQLiteQuery("SELECT * $builder AND count = (SELECT MIN(count) $builder)"))
 
     }
+
+//    override fun getNextSong(playlists: String, antiplaylists: String): Flow<List<Song>> {
+//        var playl = playlists.removeSurrounding("[", "]").split(", ").filter {it != ""}
+//        var anti = antiplaylists.removeSurrounding("[", "]").split(", ").filter {it != ""}
+//        if (playl.isEmpty() && anti.isEmpty()) {
+//            return emptyFlow()
+//        }
+//        val builder = StringBuilder()
+//        builder.append("FROM song WHERE ")
+//        builder.append("(" + playl.joinToString(separator = " OR ") {"playlists LIKE '%$it%'"} + ")")
+//        if (anti.isNotEmpty()) builder.append(" AND ")
+//        builder.append(anti.joinToString(separator = " AND ") {"playlists NOT LIKE '%$it%'"})
+//        println("54: SELECT * $builder AND length = (SELECT MIN(count) $builder)")
+//        return songDao.getLeastSongs(SimpleSQLiteQuery("SELECT * $builder AND count = (SELECT MIN(count) $builder)"))
+//    }
 }

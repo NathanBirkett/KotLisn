@@ -55,6 +55,8 @@ fun SettingsScreen(
                             } else if (randomizationMode == "songLength") {
                                 homeViewModel.setRandomizationMode("playlistLength")
                             } else if (randomizationMode == "playlistLength") {
+                                homeViewModel.setRandomizationMode("displayOrder")
+                            } else if (randomizationMode == "displayOrder") {
                                 homeViewModel.setRandomizationMode("songInstance")
                             }
                         } }

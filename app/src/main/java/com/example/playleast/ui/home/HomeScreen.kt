@@ -179,7 +179,7 @@ fun HomeScreen(
             Tools(
                 currentSong = selectedSong,
                 onStop = { viewModel.stopSong() },
-                onNext = { viewModel.logSongDuration(); viewModel.nextRandom(); viewModel.playSong() },
+                onNext = { viewModel.skip()},
                 onPlayButton = { viewModel.playSong() },
                 resetTimes = { viewModel.resetTimes() },
                 settings = onSettings,

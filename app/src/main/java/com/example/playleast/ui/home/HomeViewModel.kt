@@ -235,6 +235,10 @@ public class HomeViewModel(private val savedStateHandle: SavedStateHandle, priva
                     }
                     return@first true
                 }
+            } else if (randomizationMode == "displayOrder") {
+                val index = appUIState.value.playlist.map { it.title }.indexOf(savedStateHandle["selected"])
+                savedStateHandle["selected"] = appUIState.value.playlist[(index + 1) % appUIState.value.playlist.size].title
+                setSetting("selected", savedStateHandle.get<String>("selected")!!)
             }
             mediaPlayer.reset()
         } }
@@ -388,6 +392,17 @@ public class HomeViewModel(private val savedStateHandle: SavedStateHandle, priva
         }
     }
 
+    fun skip() {
+        logSongDuration()
+        nextRandom()
+        savedStateHandle["progress"] = 0f
+        setSetting("progress", savedStateHandle.get<Float>("progress")!!)
+        onProgressChange(savedStateHandle.get<Float>("progress")!!)
+        if (savedStateHandle.get<Boolean>("pauseAtEnd") == false) {
+            playSong()
+        }
+    }
+
     fun resetTimes() {
         runBlocking { launch {
             songsRepository.getAllItemsStream().first {
@@ -445,6 +460,7 @@ public class HomeViewModel(private val savedStateHandle: SavedStateHandle, priva
             syncSettings("pauseAtEnd", false)
             syncSettings("hold", false)
             syncSettings("paused", false)
+            syncSettings("queue", appUIState.value.playlist)
         }}
 
 
