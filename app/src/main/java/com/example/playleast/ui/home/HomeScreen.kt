@@ -4,6 +4,7 @@ import android.graphics.ColorSpace
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,6 +20,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
@@ -47,6 +49,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -217,17 +220,17 @@ fun Queue(
     onUpdateQueue: (String) -> Unit,
     queue: MutableList<String>,
     allSongs: List<Song>,
+//    onSwap: (String, String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var expanded by remember{ mutableStateOf(false)}
     val interactionSource = remember { MutableInteractionSource() }
-    Box() {
+//    val dragDropState = rememberLazyListState()
+    Box(
+
+    ) {
         Column(
-            modifier = Modifier
-                .clip(RoundedCornerShape(0, 0, 15, 15))
-                .background(Color.Black)
-                .padding(12.dp)
-                .fillMaxWidth()
+
         ) {
             Text(
                 text = "Queue",
@@ -236,23 +239,38 @@ fun Queue(
                 modifier = modifier
                     .clickable {
                         expanded = !expanded
-//                    popup.captureFocus()
+                        //                    popup.captureFocus()
                     }
                     .background(Color.Black)
             )
             if (expanded) {
-                allSongs.forEach { song ->
-                    Row {
-                        Text(
-                            text = song.title,
-                            fontSize = 24.sp
-                        )
-                        Checkbox(
-                            checked = queue.contains(song.title),
-                            onCheckedChange = {
-                                onUpdateQueue(song.title)
+                LazyColumn(
+//                    state = dragDropState,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(0, 0, 15, 15))
+                        .background(Color.Black)
+                        .padding(12.dp)
+                        .fillMaxWidth()
+                        .fillMaxHeight(0.33f)
+//                        .pointerInput(Unit) {
+//                            detectDragGesturesAfterLongPress()
+//                        }
+                ) {
+                    allSongs.forEach { song ->
+                        item {
+                            Row() {
+                                Text(
+                                    text = song.title,
+                                    fontSize = 24.sp
+                                )
+                                Checkbox(
+                                    checked = queue.contains(song.title),
+                                    onCheckedChange = {
+                                        onUpdateQueue(song.title)
+                                    }
+                                )
                             }
-                        )
+                        }
                     }
                 }
             }
