@@ -159,121 +159,129 @@ fun HomeScreen(
     Column {
         if (hold) {
             Queue(
-//            modifier = Modifier.align(Alignment.TopCenter),
-                allSongs = allSongs,
-                onUpdateQueue = {viewModel.updateQueue(it)},
-                queue = queueList.toMutableList()
+                currentSong = selectedSong,
+                queue = queueList.toMutableList(),
+                onSongSelected = { viewModel.selectSong(it) },
+                modifier = Modifier.weight(0.33f)
             )
-        } else {
+        }
+        Column(
+            modifier = Modifier.weight(0.67f)
+        ) {
             Header(
-//            modifier = Modifier.align(Alignment.TopCenter),
                 onNewSong = onNewSong,
-                onValueChange = {playlist, anti -> viewModel.updatePlaylist(playlist, anti=anti); println(playlist) },
+                onValueChange = {playlist, anti -> viewModel.updatePlaylist(playlist, anti=anti); println("valueChanged: " + playlist) },
                 onNewPlaylist = onNewPlaylist,
                 allPlaylists = allPlaylists,
                 isPlaylistAll = listPlaylists.size == allPlaylists.size || listPlaylists.isEmpty(),
                 playlists = listPlaylists.toMutableList(),
                 antiplaylists = listAntiplaylists.toMutableList()
             )
-        }
 
 
-        Box {
-            Playlist(
-                currentSong = selectedSong,
-                playlist = queueList,
-                allSongs = allSongs,
-                onSongSelected = { viewModel.selectSong(it) },
-                isPlaylistAll = listPlaylists.size == allPlaylists.size || listPlaylists.isEmpty(),
-                isOnePlaylist = listPlaylists.size == 1,
-                onNewSong = onNewSong,
-                onEditSongs = onEditSongs,
-                onRemovePlaylist = {
-                    coroutineScope.launch {
-                        viewModel.removePlaylist(listPlaylists[0])
-                    }
-                }
-            )
-            Tools(
-                currentSong = selectedSong,
-                onStop = { viewModel.stopSong() },
-                onNext = { viewModel.skip()},
-                onPlayButton = { viewModel.playSong() },
-                resetTimes = { viewModel.resetTimes() },
-                settings = onSettings,
-                hold = { viewModel.hold() },
-                progress = progress,
-//                paused = viewModel.paused || !viewModel.mediaPlayer.isPlaying,
-                paused = paused,
-                pauseAtEnd = pauseAtEnd,
-                held = held,
-                onProgressChange = {viewModel.onProgressChange(it)},
-                length = length,
-                modifier = Modifier.align(Alignment.BottomCenter)
-            )
+            Box {
+                Playlist(
+                    currentSong = selectedSong,
+                    playlist = appUIState.playlist.map { it.title },
+                    allSongs = allSongs,
+                    onSongSelected = { viewModel.selectSong(it) },
+                    isPlaylistAll = listPlaylists.size == allPlaylists.size || listPlaylists.isEmpty(),
+                    isOnePlaylist = listPlaylists.size == 1,
+                    onNewSong = onNewSong,
+                    onEditSongs = onEditSongs,
+                    onRemovePlaylist = {
+                        coroutineScope.launch {
+                            viewModel.removePlaylist(listPlaylists[0])
+                        }
+                    },
+                    inQueue = hold,
+                    onUpdateQueue = {viewModel.updateQueue(it)}
+                )
+                Tools(
+                    currentSong = selectedSong,
+                    onStop = { viewModel.stopSong() },
+                    onNext = { viewModel.skip()},
+                    onPlayButton = { viewModel.playSong() },
+                    resetTimes = { viewModel.resetTimes() },
+                    settings = onSettings,
+                    hold = { viewModel.hold() },
+                    progress = progress,
+    //                paused = viewModel.paused || !viewModel.mediaPlayer.isPlaying,
+                    paused = paused,
+                    pauseAtEnd = pauseAtEnd,
+                    held = held,
+                    onProgressChange = {viewModel.onProgressChange(it)},
+                    length = length,
+                    modifier = Modifier.align(Alignment.BottomCenter)
+                )
+            }
         }
     }
 }
 
 @Composable
 fun Queue(
-    onUpdateQueue: (String) -> Unit,
     queue: MutableList<String>,
-    allSongs: List<Song>,
-//    onSwap: (String, String) -> Unit,
+    currentSong: String,
+    onSongSelected: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var expanded by remember{ mutableStateOf(false)}
+    var expanded by remember{ mutableStateOf(true)}
     val interactionSource = remember { MutableInteractionSource() }
 //    val dragDropState = rememberLazyListState()
     Box(
-
+        modifier = modifier
+            .fillMaxWidth()
     ) {
         Column(
-
+            verticalArrangement = Arrangement.Top
         ) {
             Text(
                 text = "Queue",
                 fontSize = 36.sp,
-                lineHeight = 36.sp,
-                modifier = modifier
+//                lineHeight = 36.sp,
+                modifier = Modifier
                     .clickable {
                         expanded = !expanded
                         //                    popup.captureFocus()
                     }
                     .background(Color.Black)
             )
-            if (expanded) {
+//            if (expanded) {
                 LazyColumn(
 //                    state = dragDropState,
+                    verticalArrangement = Arrangement.Top,
                     modifier = Modifier
                         .clip(RoundedCornerShape(0, 0, 15, 15))
-                        .background(Color.Black)
                         .padding(12.dp)
                         .fillMaxWidth()
-                        .fillMaxHeight(0.33f)
 //                        .pointerInput(Unit) {
 //                            detectDragGesturesAfterLongPress()
 //                        }
                 ) {
-                    allSongs.forEach { song ->
+                    queue.forEach { song ->
                         item {
-                            Row() {
-                                Text(
-                                    text = song.title,
-                                    fontSize = 24.sp
+                            Row {
+                                Text (
+                                    text = "▶${queue.indexOf(song) + 1} ",
+                                    fontSize = 36.sp
                                 )
-                                Checkbox(
-                                    checked = queue.contains(song.title),
-                                    onCheckedChange = {
-                                        onUpdateQueue(song.title)
-                                    }
+                                Text(
+                                    text = song,
+                                    fontSize = 36.sp,
+                                    lineHeight = 36.sp,
+                                    modifier = Modifier
+                                        .background(if (currentSong == song) Color(4278225151) else Color.Transparent)
+                                        .clickable {
+                                            onSongSelected(song)
+                                        }
                                 )
                             }
+
                         }
                     }
                 }
-            }
+//            }
         }
     }
 }
@@ -307,98 +315,104 @@ fun Header(
                 interactionSource = interactionSource,
                 indication = null
             ) { }
+            .fillMaxWidth()
+            .background(Color.Black)
     ) {
-        Text(
-            text = playlists.toString(),
-            fontSize = 36.sp,
-            lineHeight = 36.sp,
-            modifier = modifier
-                .clickable {
-                    expanded = !expanded
-//                    popup.captureFocus()
-                }
-                .background(Color.Black)
-        )
-        if (expanded) {
-            Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(0, 0, 15, 15))
+        Column() {
+            Text(
+                text = playlists.toString(),
+                fontSize = 36.sp,
+                lineHeight = 36.sp,
+                modifier = modifier
+                    .clickable {
+                        expanded = !expanded
+    //                    popup.captureFocus()
+                    }
                     .background(Color.Black)
-                    .padding(12.dp)
-                    .fillMaxWidth()
-            ) {
-                Column(
-                    modifier = Modifier.weight(0.55f)
+            )
+            if (expanded) {
+                Row(
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(0, 0, 15, 15))
+                        .background(Color.Black)
+                        .padding(12.dp)
+                        .fillMaxWidth()
                 ) {
-                    allPlaylists.forEach { playlist ->
-                        Row {
-                            Text(
-                                text = playlist.title,
-                                fontSize = 24.sp,
-                                modifier = Modifier.clickable {
-                                    playlists.removeAll(playlists)
-                                    antiplaylists.removeAll(antiplaylists)
-                                    playlists.add(playlist.title)
-                                    onValueChange(playlists, false)
-                                    onValueChange(antiplaylists, true)
-                                }
-                            )
-                            Checkbox(
-                                checked = playlists.contains(playlist.title),
-                                onCheckedChange = {
-                                    if (it) {
+                    Column(
+                        modifier = Modifier.weight(0.55f)
+                    ) {
+                        allPlaylists.forEach { playlist ->
+                            Row {
+                                Text(
+                                    text = playlist.title,
+                                    fontSize = 24.sp,
+                                    modifier = Modifier.clickable {
+                                        println("text clicked")
+                                        playlists.removeAll(playlists)
+                                        antiplaylists.removeAll(antiplaylists)
                                         playlists.add(playlist.title)
-                                        antiplaylists.remove(playlist.title)
-                                    } else {
-                                        playlists.remove(playlist.title)
+                                        onValueChange(playlists, false)
+                                        onValueChange(antiplaylists, true)
                                     }
-                                    println("262" + playlists)
-                                    println("263" + antiplaylists)
-                                    onValueChange(playlists, false)
-                                    onValueChange(antiplaylists, true)
-                                }
-                            )
-                            Checkbox(
-                                checked = antiplaylists.contains(playlist.title),
-                                onCheckedChange = {
-                                    if (it) {
-                                        antiplaylists.add(playlist.title)
-                                        playlists.remove(playlist.title)
-                                    } else {
-                                        antiplaylists.remove(playlist.title)
+                                )
+                                Checkbox(
+                                    checked = playlists.contains(playlist.title),
+                                    onCheckedChange = {
+                                        if (it) {
+                                            playlists.add(playlist.title)
+                                            antiplaylists.remove(playlist.title)
+                                        } else {
+                                            playlists.remove(playlist.title)
+                                        }
+                                        println("262" + playlists)
+                                        println("263" + antiplaylists)
+                                        onValueChange(playlists, false)
+                                        onValueChange(antiplaylists, true)
                                     }
-                                    println("277" + playlists)
-                                    println("278" + antiplaylists)
-                                    onValueChange(antiplaylists, true)
-                                    onValueChange(playlists, false)
-                                }
-                            )
+                                )
+                                Checkbox(
+                                    checked = antiplaylists.contains(playlist.title),
+                                    onCheckedChange = {
+                                        if (it) {
+                                            antiplaylists.add(playlist.title)
+                                            playlists.remove(playlist.title)
+                                        } else {
+                                            antiplaylists.remove(playlist.title)
+                                        }
+                                        println("277" + playlists)
+                                        println("278" + antiplaylists)
+                                        onValueChange(antiplaylists, true)
+                                        onValueChange(playlists, false)
+                                    }
+                                )
+                            }
                         }
                     }
-                }
-                Column(
-                    horizontalAlignment = Alignment.End,
-                    modifier = Modifier.weight(0.45f)
-                ) {
-                    Button(onClick = {
-                        if (playlists.isEmpty()) {
-                            playlists.addAll(allPlaylists.map { it.title })
-                            playlists.toSet().toMutableList()
-                        } else {
-                            playlists.removeIf { it != "" }
+                    Column(
+                        horizontalAlignment = Alignment.End,
+                        modifier = Modifier.weight(0.45f)
+                    ) {
+                        Button(onClick = {
+                            if (playlists.isEmpty()) {
+                                playlists.addAll(allPlaylists.map { it.title })
+                                playlists.toSet().toMutableList()
+                            } else {
+                                playlists.removeIf { it != "" }
+                            }
+                            antiplaylists.removeAll(antiplaylists)
+                            println("button pressed")
+                            onValueChange(antiplaylists, true)
+                            onValueChange(playlists, false)
+                        }) {
+                            Text(text = if (playlists.isEmpty()) "all" else "none")
                         }
-                        antiplaylists.removeAll(antiplaylists)
-                        onValueChange(antiplaylists, true)
-                        onValueChange(playlists, false)
-                    }) {
-                        Text(text = if (playlists.isEmpty()) "all" else "none")
-                    }
-                    Button(onClick = onNewPlaylist) {
-                        Text(text = "New Playlist...")
-                    }
-                    Button(onClick = { expanded = false }) {
-                        Text(text = "done")
+                        Button(onClick = onNewPlaylist) {
+                            Text(text = "New Playlist...")
+                        }
+                        Button(onClick = { expanded = false }) {
+                            Text(text = "done")
+                        }
                     }
                 }
             }
@@ -418,30 +432,49 @@ fun Playlist(
     onNewSong: () -> Unit,
     onRemovePlaylist: () -> Unit,
     onEditSongs: () -> Unit,
+    inQueue: Boolean,
+    onUpdateQueue: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
         modifier = modifier
             .fillMaxWidth()
             .fillMaxHeight()
+            .background(if (inQueue) Color.Black else Color.Transparent)
     ) {
         items(playlist) {
-                song -> Row() {
-            Text(
-                text = song,
-                fontSize = 36.sp,
-                lineHeight = 36.sp,
-                modifier = modifier
-                    .clickable {
-                        println(currentSong)
-                        onSongSelected(song)
-                    }
-                    .background(if (currentSong == song) Color(4278225151) else Color.Transparent)
-            )
-//            Text(
-//                text = "hi"
-//            )
+            song -> Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+                ) {
+                Text(
+                    text = song,
+                    fontSize = 36.sp,
+                    lineHeight = 36.sp,
+                    modifier = modifier
+                        .clickable {
+                            println(currentSong)
+                            onSongSelected(song)
+                        }
+                        .background(if (currentSong == song) Color(4278225151) else Color.Transparent)
+                        .weight(if (inQueue) 0.9f else 1f)
+                )
+                if (inQueue) {
+                    Text(
+                        text = "+",
+                        fontSize = 36.sp,
+                        lineHeight = 36.sp,
+                        textAlign = TextAlign.End,
+                        modifier = modifier
+                            .clickable {
+                                onUpdateQueue(song)
+                            }
+                            .padding(end = 24.dp)
+                            .weight(0.1f)
+                    )
                 }
+            }
+
 
         }
         item {

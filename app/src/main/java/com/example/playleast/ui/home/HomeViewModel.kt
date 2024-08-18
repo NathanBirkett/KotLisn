@@ -151,6 +151,7 @@ public class HomeViewModel(private val savedStateHandle: SavedStateHandle, priva
     }
 
     fun updatePlaylist(playlists: List<String>, doNextRandom: Boolean = true, anti: Boolean = false) {
+        println("154: ${savedStateHandle.get<String>("playlists")}")
         if (anti) {
             savedStateHandle["antiplaylists"] = playlists.toString()
             setSetting("antiplaylists", playlists.toString())
@@ -232,7 +233,12 @@ public class HomeViewModel(private val savedStateHandle: SavedStateHandle, priva
         runBlocking { launch {
             val randomizationMode = getRandomizationMode().first()
             println("randomization mode: ${randomizationMode}")
-            if (randomizationMode == "playlistLength" && !hold.value) {
+            if (hold.value) {
+                val queueList = savedStateHandle.get<String>("queue")!!.removeSurrounding("[", "]").split(", ").filter {it != ""}
+                val index = queueList.indexOf(savedStateHandle["selected"])
+                savedStateHandle["selected"] = queueList[(index + 1) % queueList.size]
+                setSetting("selected", savedStateHandle.get<String>("selected")!!)
+            } else if (randomizationMode == "playlistLength" && !hold.value) {
                 var playlist: String
                 playlistsRepository.getLeastPlaylists(savedStateHandle.get<String>("playlists")!!.removeSurrounding("[", "]").split(", ").filter {it != ""}).first {list ->
                     println("115" + list)
@@ -286,10 +292,9 @@ public class HomeViewModel(private val savedStateHandle: SavedStateHandle, priva
                     }
                     return@first true
                 }
-            } else if (randomizationMode == "displayOrder" || hold.value) {
-                val queueList = savedStateHandle.get<String>("queue")!!.removeSurrounding("[", "]").split(", ").filter {it != ""}
-                val index = queueList.indexOf(savedStateHandle["selected"])
-                savedStateHandle["selected"] = queueList[(index + 1) % queueList.size]
+            } else if (randomizationMode == "displayOrder") {
+                val index = appUIState.value.playlist.map { it.title }.indexOf(savedStateHandle["selected"])
+                savedStateHandle["selected"] = appUIState.value.playlist[(index + 1) % appUIState.value.playlist.size].title
                 setSetting("selected", savedStateHandle.get<String>("selected")!!)
             }
             mediaPlayer.reset()
@@ -333,7 +338,8 @@ public class HomeViewModel(private val savedStateHandle: SavedStateHandle, priva
         )
 
     var allPlaylists: StateFlow<List<Playlist>> =
-        playlistsRepository.getAllItemsStream().distinctUntilChanged { old, new -> old.size == new.size } .onEach { ti -> updatePlaylist(ti.map { it.title }, false); println("all playlists: $ti") }
+        playlistsRepository.getAllItemsStream().distinctUntilChanged { old, new -> old.size == new.size }
+//            .onEach { ti -> updatePlaylist(ti.map { it.title }, false); println("all playlists: $ti") }
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(TIMEOUT_MILLIS),
