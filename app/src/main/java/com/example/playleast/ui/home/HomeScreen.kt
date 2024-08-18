@@ -562,7 +562,7 @@ fun Tools(
             )
             ToolButton(painterResource(R.drawable.next), onClick = onNext)
             ToolButton(painterResource(
-                R.drawable.hold),
+                R.drawable.queue),
                 onClick = hold,
                 background = if (held) Color(4294936576) else Color(4278225151)
             )
