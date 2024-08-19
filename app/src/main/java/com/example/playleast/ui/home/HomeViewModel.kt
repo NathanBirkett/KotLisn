@@ -139,13 +139,11 @@ public class HomeViewModel(private val savedStateHandle: SavedStateHandle, priva
         return application.applicationContext.dataStore.data.map { preferences -> preferences[SETTING]}
     }
 
-    fun updateQueue(song: String) {
+    fun updateQueue(song: String, remove: Boolean = false) {
         var queueList = savedStateHandle.get<String>("queue")!!.removeSurrounding("[", "]").split(", ").filter {it != ""}
-        if (queueList.contains(song)) {
-            savedStateHandle["queue"] = queueList.minus(song).toString()
-        } else {
-            savedStateHandle["queue"] = queueList.plus(song).toString()
-        }
+        if (remove) savedStateHandle["queue"] = queueList.minus(song).toString()
+        else if (queueList.contains(song)) savedStateHandle["queue"] = queueList.minus(song).plus(song).toString()
+        else savedStateHandle["queue"] = queueList.plus(song).toString()
         setSetting("queue", savedStateHandle.get<String>("queue")!!)
         println("queue150: ${savedStateHandle.get<String>("queue")}")
     }
@@ -502,6 +500,11 @@ public class HomeViewModel(private val savedStateHandle: SavedStateHandle, priva
         }
 //        getSetting(key).first() ?: setSetting(key, value)
         savedStateHandle[key] = getSetting(key).first()
+    }
+
+    fun reorderQueue(newQueue: List<String>) {
+        savedStateHandle["queue"] = newQueue.toString()
+        setSetting("queue", savedStateHandle.get<String>("queue")!!)
     }
 
     init {

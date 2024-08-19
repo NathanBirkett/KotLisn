@@ -1,6 +1,7 @@
 package com.example.playleast.ui.home
 
 import android.graphics.ColorSpace
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
@@ -70,6 +71,11 @@ import com.example.playleast.ui.settings.SettingsScreen
 import com.example.playleast.ui.song.CreateSongScreen
 import com.example.playleast.ui.theme.PlayleastTheme
 import kotlinx.coroutines.launch
+import org.burnoutcrew.reorderable.ReorderableItem
+import org.burnoutcrew.reorderable.detectReorder
+import org.burnoutcrew.reorderable.detectReorderAfterLongPress
+import org.burnoutcrew.reorderable.rememberReorderableLazyListState
+import org.burnoutcrew.reorderable.reorderable
 import java.util.concurrent.TimeUnit
 import kotlin.math.exp
 
@@ -162,6 +168,8 @@ fun HomeScreen(
                 currentSong = selectedSong,
                 queue = queueList.toMutableList(),
                 onSongSelected = { viewModel.selectSong(it) },
+                onReorderQueue = {viewModel.reorderQueue(it)},
+                onUpdateQueue = {song, remove -> viewModel.updateQueue(song, remove)},
                 modifier = Modifier.weight(0.33f)
             )
         }
@@ -224,11 +232,22 @@ fun Queue(
     queue: MutableList<String>,
     currentSong: String,
     onSongSelected: (String) -> Unit,
+    onReorderQueue: (List<String>) -> Unit,
+    onUpdateQueue: (String, Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var expanded by remember{ mutableStateOf(true)}
     val interactionSource = remember { MutableInteractionSource() }
-//    val dragDropState = rememberLazyListState()
+    val data = remember { mutableStateOf(queue) }
+    val state = rememberReorderableLazyListState(onMove = { from, to ->
+        data.value = data.value.apply {
+            add(to.index, removeAt(from.index))
+        }
+        onReorderQueue(data.value)
+    })
+    if (data.value != queue) {
+        data.value = queue
+    }
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -249,32 +268,47 @@ fun Queue(
             )
 //            if (expanded) {
                 LazyColumn(
-//                    state = dragDropState,
+                    state = state.listState,
                     verticalArrangement = Arrangement.Top,
                     modifier = Modifier
                         .clip(RoundedCornerShape(0, 0, 15, 15))
                         .padding(12.dp)
                         .fillMaxWidth()
-//                        .pointerInput(Unit) {
-//                            detectDragGesturesAfterLongPress()
-//                        }
+                        .reorderable(state)
+                        .detectReorder(state)
                 ) {
-                    queue.forEach { song ->
-                        item {
+                    items(queue, {it}) { song ->
+                        ReorderableItem(state, key = song) { isDragging ->
+                            val elevation = animateDpAsState(if (isDragging) 12.dp else 0.dp)
                             Row {
-                                Text (
-                                    text = "▶${queue.indexOf(song) + 1} ",
-                                    fontSize = 36.sp
-                                )
+                                Row(modifier = Modifier.weight(0.8f)) {
+                                    Text(
+                                        text = "Ξ ${queue.indexOf(song) + 1} ",
+                                        fontSize = 36.sp,
+                                        modifier = Modifier.detectReorder(state)
+                                    )
+                                    Text(
+                                        text = song,
+                                        fontSize = 36.sp,
+                                        lineHeight = 36.sp,
+                                        modifier = Modifier
+                                            .background(if (currentSong == song) Color(4278225151) else Color.Transparent)
+                                            .clickable {
+                                                onSongSelected(song)
+                                            }
+                                    )
+                                }
                                 Text(
-                                    text = song,
+                                    text = "-",
                                     fontSize = 36.sp,
                                     lineHeight = 36.sp,
-                                    modifier = Modifier
-                                        .background(if (currentSong == song) Color(4278225151) else Color.Transparent)
+                                    textAlign = TextAlign.End,
+                                    modifier = modifier
                                         .clickable {
-                                            onSongSelected(song)
+                                            onUpdateQueue(song, true)
                                         }
+                                        .padding(end = 24.dp, start = 24.dp)
+                                        .weight(0.2f)
                                 )
                             }
 
@@ -326,7 +360,7 @@ fun Header(
                 modifier = modifier
                     .clickable {
                         expanded = !expanded
-    //                    popup.captureFocus()
+                        //                    popup.captureFocus()
                     }
                     .background(Color.Black)
             )
@@ -457,7 +491,7 @@ fun Playlist(
                             onSongSelected(song)
                         }
                         .background(if (currentSong == song) Color(4278225151) else Color.Transparent)
-                        .weight(if (inQueue) 0.9f else 1f)
+                        .weight(if (inQueue) 0.8f else 1f)
                 )
                 if (inQueue) {
                     Text(
@@ -469,8 +503,8 @@ fun Playlist(
                             .clickable {
                                 onUpdateQueue(song)
                             }
-                            .padding(end = 24.dp)
-                            .weight(0.1f)
+                            .padding(end = 24.dp, start = 24.dp)
+                            .weight(0.2f)
                     )
                 }
             }
